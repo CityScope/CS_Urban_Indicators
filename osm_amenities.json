@@ -1,0 +1,100 @@
+{
+  "osm_pois": {
+    "restaurants": [
+      "amenity=restaurant",
+      "amenity=cafe",
+      "amenity=fast_food",
+      "amenity=pub",
+      "amenity=cafe",
+      "shop=coffee"
+    ],
+    "nightlife": [
+      "amenity=bar",
+      "amenity=pub",
+      "amenity=biergarten",
+      "amenity=nightclub"   
+    ],
+    "groceries": [
+      "shop=convenience",
+      "shop=grocer",
+      "shop=greengrocer",
+      "shop=food",
+      "shop=supermarket"
+    ],
+    "pharmacies": [
+      "amenity=pharmacy",
+      "amenity=chemist",
+      "amenity=dispensing"
+    ],
+    "dentist": [
+      "amenity=dentist"
+    ],
+    "ophthalmologists": [
+      "shop=optician",
+      "craft=optician"
+    ],
+    "gyms": [
+      "leisure=fitness_centre",
+      "leisure=sports_centre"
+    ],
+    "spas": [
+      "amenity=spa",
+      "amenity=public_bath"
+    ],
+    "clinic": [
+      "amenity=clinic",
+      "healthcare=clinic"
+    ],
+    "daycare": [
+      "amenity=childcare"
+    ],
+    "hospital": [
+      "amenity=hospital"
+    ],
+    "nursery": [
+      "amenity=nursery"
+    ],
+    "hotels": [
+      "amenity=hotel",
+       "tourism=hotel"
+    ],
+    "libraries": [
+      "amenity=library"
+    ],
+    "museums": [
+      "tourism=museum",
+       "museum=*"
+    ],
+    "cinema": [
+      "amenity=cinema"
+    ],
+    "bookstore": [
+      "shop=books"
+    ],
+    "art-gallery": [
+       "tourism=gallery"
+    ],
+    "schools": [
+      "amenity=school",
+      "building=school"
+    ],
+    "universities": [
+      "amenity=university"
+    ],
+    "kindergarten": [
+      "amenity=kindergarten",
+       "amenity=preschool"
+    ],
+    "further_education": [
+      "amenity=college"
+    ],
+    "sports_facilities": [
+      "sport=*",
+      "leisure=stadium"
+    ]
+    ,
+    "sports_shop": [
+      "shop=sports"
+    ]
+  }
+}

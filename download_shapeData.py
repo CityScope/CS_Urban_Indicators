@@ -4,6 +4,7 @@ import os
 import sys
 import zipfile
 from io import BytesIO
+from pathlib import Path
 SHAPES_PATH = 'tables/shapes/'
 
 def fetch(url,nAttempts=5,quietly=True):
@@ -39,14 +40,13 @@ def getShapes(shape_level,year_version,shapesPath,base_url = 'https://www2.censu
 
     '''
     batch_path = os.path.join(shapesPath,year_version+'_'+shape_level.lower())
-    if not os.path.isdir(batch_path):
-        os.mkdir(batch_path)
+    Path(batch_path).mkdir(parents=True, exist_ok=True)
     url = base_url+'TIGER'+year_version+'/'+shape_level.upper()+'/'
     r = requests.get(url)
     if r.status_code!=200:
         raise NameError('URL not found, probably year does not exist. Status code:',r.status_code)
 
-    fnames = set(re.findall(re.compile('tl_'+year_version+'_[0-9][0-9]_'+shape_level.lower()+'.zip'),r.text))
+    fnames = set(re.findall(re.compile('tl_'+year_version+'_.._'+shape_level.lower()+'.zip'),r.text))
     for fname in fnames:
         if not os.path.isdir(os.path.join(batch_path,fname.replace('.zip',''))):
             url_f = url+fname
@@ -60,10 +60,9 @@ def getShapes(shape_level,year_version,shapesPath,base_url = 'https://www2.censu
                     zip_ref.extractall(os.path.join(batch_path,fname.replace('.zip','')))
 
 def main(shapesPath):
-    if not os.path.isdir(shapesPath):
-        os.mkdir(shapesPath)
+    Path(shapesPath).mkdir(parents=True, exist_ok=True)
     year_version = '2019'
-    for shape_level in ['BG','TRACT','COUNTY']:
+    for shape_level in ['BG','TRACT','COUNTY','CBSA']:
         print(shape_level)
         getShapes(shape_level,year_version,shapesPath,quietly=False)
 

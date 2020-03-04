@@ -1,6 +1,6 @@
 category,sub_cat,sub_sub_cat,quota_per_k_people,quota,num_present,score
 3rd places Day,Hotels,hotels,0.14,1.41036,3,1.0
-3rd places Day,Restaurants,restaurants,2.0,20.148,29,1.0
+3rd places Day,Restaurants,restaurants,2.0,20.148,47,1.0
 3rd places Day,Leisure and Wellness,pharmacies,0.31,3.1229400000000003,0,0.0
 3rd places Day,Leisure and Wellness,dentist,0.27,2.71998,0,0.0
 3rd places Day,Leisure and Wellness,ophthalmologists,0.1,1.0074,0,0.0
@@ -15,11 +15,11 @@ category,sub_cat,sub_sub_cat,quota_per_k_people,quota,num_present,score
 3rd places Day,Culture,cinema,0.126,1.2693240000000001,0,0.0
 3rd places Day,Culture,bookstore,0.102,1.027548,1,0.9731905468163046
 3rd places Day,Culture,art-gallery,0.0181,0.1823394,0,0.0
-3rd places Day,Gym and Sports,sports_facilities,0.6,6.0443999999999996,11,1.0
+3rd places Day,Gym and Sports,sports_facilities,0.6,6.0443999999999996,14,1.0
 3rd places Day,Gym and Sports,gyms,0.07,0.70518,0,0.0
 3rd places Day,Gym and Sports,sports_shop,0.15,1.5110999999999999,0,0.0
-3rd places Night,nightlife,nightlife,0.89,8.965860000000001,7,0.7807393825020689
-Educational,Educational,schools,0.03,0.30222,13,1.0
+3rd places Night,nightlife,nightlife,0.89,8.965860000000001,16,1.0
+Educational,Educational,schools,0.03,0.30222,15,1.0
 Educational,Educational,universities,0.02,0.20148000000000002,1,1.0
 Educational,Educational,kindergarten,0.027999999999999997,0.28207199999999993,0,0.0
 Educational,Educational,further_education,0.05,0.5037,1,1.0

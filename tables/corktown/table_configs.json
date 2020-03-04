@@ -1,5 +1,38 @@
-{ 
-  "corktown": {
-    "local_epsg": "2253"
+{
+  "local_epsg": "2253",
+  "access_osm_pois": [
+    "restaurants",
+    "nightlife",
+    "education",
+    "groceries",
+    "parks"
+  ],
+  "access_zonal_pois": [
+    "housing",
+    "employment"
+  ],
+  "scalers": {
+    "restaurants":200,
+    "nightlife":60,
+    "education":50,
+    "groceries":20,
+    "parks":50,
+    "housing":120000,
+    "employment":200000
+  },
+  "bboxes": {
+    "amenities": [
+      -83.096,
+      42.314,
+      -83.04,
+      42.35
+    ]
+  },
+  "sampling_grid": {
+    "col_margin_left": 70,
+    "row_margin_top": 70,
+    "cell_width": 190,
+    "cell_height": 150,
+    "stride": 5
   }
 }

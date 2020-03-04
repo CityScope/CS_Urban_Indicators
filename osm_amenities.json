@@ -12,7 +12,7 @@
       "amenity=bar",
       "amenity=pub",
       "amenity=biergarten",
-      "amenity=nightclub"   
+      "amenity=nightclub"
     ],
     "groceries": [
       "shop=convenience",
@@ -56,14 +56,14 @@
     ],
     "hotels": [
       "amenity=hotel",
-       "tourism=hotel"
+      "tourism=hotel"
     ],
     "libraries": [
       "amenity=library"
     ],
     "museums": [
       "tourism=museum",
-       "museum=*"
+      "museum=*"
     ],
     "cinema": [
       "amenity=cinema"
@@ -72,7 +72,7 @@
       "shop=books"
     ],
     "art-gallery": [
-       "tourism=gallery"
+      "tourism=gallery"
     ],
     "schools": [
       "amenity=school",
@@ -83,18 +83,27 @@
     ],
     "kindergarten": [
       "amenity=kindergarten",
-       "amenity=preschool"
+      "amenity=preschool"
     ],
     "further_education": [
+      "amenity=college"
+    ],
+    "education": [
+      "amenity=university",
+      "amenity=kindergarten",
+      "amenity=preschool",
       "amenity=college"
     ],
     "sports_facilities": [
       "sport=*",
       "leisure=stadium"
-    ]
-    ,
+    ],
     "sports_shop": [
       "shop=sports"
+    ],
+    "parks": [
+      "leisure=park",
+      "amenity=park"
     ]
   }
 }

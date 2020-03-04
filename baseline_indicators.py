@@ -24,7 +24,7 @@ table_name='corktown'
 OSM_CONFIG_FILE_PATH='./osm_amenities.json'
 GROUPS_FILE_PATH='./amenity_groups.csv'
 TABLE_CONFIG_FILE_PATH='./tables/corktown/table_configs.json'
-SIM_AREA_GEOM_PATH='./tables/corktown/table_area.geojson'
+SIM_AREA_GEOM_PATH='./tables/corktown/geometry/table_area.geojson'
 SIM_ZONES_PATH='./tables/corktown/sim_zones.json'
 WAC_PATH='./tables/corktown/mi_wac_S000_JT00_2017.csv.gz'
 
@@ -38,7 +38,7 @@ BASELINE_INDICATORS_PATH='tables/{}/baseline_indicators.json'.format(table_name)
 # =============================================================================
 host='https://cityio.media.mit.edu/'
 
-table_configs=json.load(open(TABLE_CONFIG_FILE_PATH))[table_name]
+table_configs=json.load(open(TABLE_CONFIG_FILE_PATH))
 osm_amenities=json.load(open(OSM_CONFIG_FILE_PATH))
 amenity_groups=pd.read_csv(GROUPS_FILE_PATH)
 amenity_scores=amenity_groups.copy()
@@ -74,7 +74,7 @@ bounds_all=[min([b[0] for b in bounds]), #W
 # Get OSM amenities and census data
 # =============================================================================
 
-amenities=get_osm_amenies(bounds_all, amenity_types)
+amenities=get_osm_amenies(bounds_all, amenity_types, wgs, projection)
 
 # get the census data
 # living, working, job types, housing types
@@ -124,7 +124,7 @@ json.dump({'residents': population_all, 'employees': n_jobs_all,
 amenity_scores['quota']=total_people*amenity_scores['quota_per_k_people']/1000
 
 amenity_scores['num_present']=amenity_scores.apply(lambda row: 
-    amenities[row['sub_sub_cat']], axis=1)
+    amenities[row['sub_sub_cat']]['count'], axis=1)
 
 # individual density scores
 amenity_scores['score']=amenity_scores.apply(lambda row: min(1,row['num_present']/row['quota']), axis=1)
@@ -162,42 +162,83 @@ income_level_cols=[col for col in wac_data if (('CA' in col) and ('00' not in co
 income_level_counts=wac_data_full_table[income_level_cols].values
 income_level_diversity=shannon_equitability_score(income_level_counts)
 
-indicators=[{'name': 'Residential Density','category': 'Density', 'value': residential_density_score},
+density_indicators={'Residential Density': residential_density_score,
+                    'Employment Density': employment_density_score,
+                    '3rd Places Day Density': cat_scores.loc['3rd places Day', 'score'],
+                    '3rd Places Night Density': cat_scores.loc['3rd places Night', 'score'],
+                    'Educational Inst Density': cat_scores.loc['Educational', 'score'],
+                    'Cultural Inst Density': sub_cat_scores.loc['Culture', 'score']}
+
+diversity_indicators={'Residential/Employment Ratio': resi_employ_ratio,
+                      'Educational Inst Diversity': sub_cat_diversity.loc['Educational', 'diversity_score'],
+                      'Cultural Inst Diversity': sub_cat_diversity.loc['Culture', 'diversity_score'],
+                      'Educational Inst Diversity': sub_cat_diversity.loc['Educational', 'diversity_score'],
+                      '3rd Places Diversity': cat_diversity.loc['3rd places Day', 'diversity_score'],
+                      'Job Type Diversity':job_type_diversity,
+                      'Income Level Diversity': income_level_diversity}
+
+proximity_indicators={'Proximity to {}'.format(prox_ind): 0.5 for prox_ind in table_configs['scalers']}
+
+mobility_indicators={'Mobility Efficiency': 0.5,
+                     'Mobility Embodied Energy': 0.5}
+
+buildings_indicators={'Buildings Efficiency': 0.5,
+                     'Buildings Embodied Energy': 0.5}
+
+
+indicators={'density': density_indicators,
+            'diversity': diversity_indicators,
+            'proximity': proximity_indicators,
+            'buildings': buildings_indicators,
+            'mobility': mobility_indicators}
+# =============================================================================
+# Save results
+# =============================================================================
+
+amenity_scores.to_csv('tables/corktown/amenity_scores.csv', index=False)
+
+json.dump(indicators, open(BASELINE_INDICATORS_PATH, 'w'))
+
+host='https://cityio.media.mit.edu/'
+cityIO_output_path=host+'api/table/update/'+table_name
+       
+#r = requests.post(cityIO_output_path+'/density_indicators', data = json.dumps(density_indicators))
+#print(r)
+#r = requests.post(cityIO_output_path+'/diversity_indicators', data = json.dumps(diversity_indicators))
+#print(r)
+#r = requests.post(cityIO_output_path+'/proximity_indicators', data = json.dumps(proximity_indicators))
+#print(r)
+#r = requests.post(cityIO_output_path+'/mobility_indicators', data = json.dumps(mobility_indicators))
+#print(r)
+
+
+indicators=[
+            {'name': 'Residential Density','category': 'Density', 'value': residential_density_score},
             {'name': 'Employment Density','category': 'Density', 'value': employment_density_score},
             {'name': '3rd Places Day Density','category': 'Density', 'value': cat_scores.loc['3rd places Day', 'score']},
             {'name': '3rd Places Night Density','category': 'Density', 'value': cat_scores.loc['3rd places Night', 'score']},
             {'name': 'Educational Inst Density','category': 'Density', 'value': cat_scores.loc['Educational', 'score']},
             {'name': 'Cultural Inst Density','category': 'Density', 'value': sub_cat_scores.loc['Culture', 'score']},
-            {'name': 'Cultural Inst Diversity','category': 'Diversity', 'value': sub_cat_diversity.loc['Culture', 'diversity_score']},
-            {'name': 'Residential/Employment Ratio','category': 'Diversity', 'value': resi_employ_ratio},
-            {'name': 'Educational Inst Diversity','category': 'Diversity', 'value': sub_cat_diversity.loc['Educational', 'diversity_score']},
-            {'name': '3rd Places Diversity','category': 'Diversity', 'value': cat_diversity.loc['3rd places Day', 'diversity_score']},
-            {'name': 'Job Type Diversity','category': 'Diversity', 'value': job_type_diversity},
-            {'name': 'Income Level Diversity','category': 'Diversity', 'value': income_level_diversity}]
+#            {'name': 'Cultural Inst Diversity','category': 'Diversity', 'value': sub_cat_diversity.loc['Culture', 'diversity_score']},
+#            {'name': 'Residential/Employment Ratio','category': 'Diversity', 'value': resi_employ_ratio},
+#            {'name': 'Educational Inst Diversity','category': 'Diversity', 'value': sub_cat_diversity.loc['Educational', 'diversity_score']},
+#            {'name': '3rd Places Diversity','category': 'Diversity', 'value': cat_diversity.loc['3rd places Day', 'diversity_score']},
+#            {'name': 'Job Type Diversity','category': 'Diversity', 'value': job_type_diversity},
+#            {'name': 'Income Level Diversity','category': 'Diversity', 'value': income_level_diversity}
+            ]
 
 
 # =============================================================================
 # Random values
 # =============================================================================
 import random
-for prox_ind in ['Employment','Education', 'Housing', '3rd Places', 'Parks', 'Healthcare']:
+for prox_ind in table_configs['scalers']:
     indicators.append({'name': 'Proximity to {}'.format(prox_ind), 
                       'category': 'Proximity', 'value': random.random()})
-for energy_ind in ['Buildings','Mobility']:
+for energy_ind in ['Mobility']:
     indicators.append({'name': '{} Energy Efficiency'.format(energy_ind), 
                       'category': 'Energy', 'value': random.random()})
     indicators.append({'name': '{} Embodied Energy'.format(energy_ind), 
                       'category': 'Energy', 'value': random.random()})
-# =============================================================================
-# Save results
-# =============================================================================
-amenity_scores.to_csv('tables/corktown/amenity_scores.csv', index=False)
-
-
-host='https://cityio.media.mit.edu/'
-cityIO_output_path=host+'api/table/update/'+table_name
-       
 r = requests.post(cityIO_output_path+'/indicators', data = json.dumps(indicators))
 print(r)
-
-json.dump(indicators, open(BASELINE_INDICATORS_PATH, 'w'))

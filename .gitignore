@@ -1,0 +1,5 @@
+# Ignore config file that might contain API keys and local paths
+config.py
+
+# Ignore files in directory that contains locally downloaded shapefiles
+tables/shapes/*

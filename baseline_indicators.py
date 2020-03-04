@@ -162,42 +162,41 @@ income_level_cols=[col for col in wac_data if (('CA' in col) and ('00' not in co
 income_level_counts=wac_data_full_table[income_level_cols].values
 income_level_diversity=shannon_equitability_score(income_level_counts)
 
-density_indicators={'Residential Density': residential_density_score,
-                    'Employment Density': employment_density_score,
-                    '3rd Places Day Density': cat_scores.loc['3rd places Day', 'score'],
-                    '3rd Places Night Density': cat_scores.loc['3rd places Night', 'score'],
-                    'Educational Inst Density': cat_scores.loc['Educational', 'score'],
-                    'Cultural Inst Density': sub_cat_scores.loc['Culture', 'score']}
-
-diversity_indicators={'Residential/Employment Ratio': resi_employ_ratio,
-                      'Educational Inst Diversity': sub_cat_diversity.loc['Educational', 'diversity_score'],
-                      'Cultural Inst Diversity': sub_cat_diversity.loc['Culture', 'diversity_score'],
-                      'Educational Inst Diversity': sub_cat_diversity.loc['Educational', 'diversity_score'],
-                      '3rd Places Diversity': cat_diversity.loc['3rd places Day', 'diversity_score'],
-                      'Job Type Diversity':job_type_diversity,
-                      'Income Level Diversity': income_level_diversity}
-
-proximity_indicators={'Proximity to {}'.format(prox_ind): 0.5 for prox_ind in table_configs['scalers']}
-
-mobility_indicators={'Mobility Efficiency': 0.5,
-                     'Mobility Embodied Energy': 0.5}
-
-buildings_indicators={'Buildings Efficiency': 0.5,
-                     'Buildings Embodied Energy': 0.5}
-
-
-indicators={'density': density_indicators,
-            'diversity': diversity_indicators,
-            'proximity': proximity_indicators,
-            'buildings': buildings_indicators,
-            'mobility': mobility_indicators}
+#density_indicators={'Residential Density': residential_density_score,
+#                    'Employment Density': employment_density_score,
+#                    '3rd Places Day Density': cat_scores.loc['3rd places Day', 'score'],
+#                    '3rd Places Night Density': cat_scores.loc['3rd places Night', 'score'],
+#                    'Educational Inst Density': cat_scores.loc['Educational', 'score'],
+#                    'Cultural Inst Density': sub_cat_scores.loc['Culture', 'score']}
+#
+#diversity_indicators={'Residential/Employment Ratio': resi_employ_ratio,
+#                      'Educational Inst Diversity': sub_cat_diversity.loc['Educational', 'diversity_score'],
+#                      'Cultural Inst Diversity': sub_cat_diversity.loc['Culture', 'diversity_score'],
+#                      'Educational Inst Diversity': sub_cat_diversity.loc['Educational', 'diversity_score'],
+#                      '3rd Places Diversity': cat_diversity.loc['3rd places Day', 'diversity_score'],
+#                      'Job Type Diversity':job_type_diversity,
+#                      'Income Level Diversity': income_level_diversity}
+#
+#proximity_indicators={'Proximity to {}'.format(prox_ind): 0.5 for prox_ind in table_configs['scalers']}
+#
+#mobility_indicators={'Mobility Efficiency': 0.5,
+#                     'Mobility Embodied Energy': 0.5}
+#
+#buildings_indicators={'Buildings Efficiency': 0.5,
+#                     'Buildings Embodied Energy': 0.5}
+#
+#
+#indicators={'density': density_indicators,
+#            'diversity': diversity_indicators,
+#            'proximity': proximity_indicators,
+#            'buildings': buildings_indicators,
+#            'mobility': mobility_indicators}
 # =============================================================================
 # Save results
 # =============================================================================
 
 amenity_scores.to_csv('tables/corktown/amenity_scores.csv', index=False)
 
-json.dump(indicators, open(BASELINE_INDICATORS_PATH, 'w'))
 
 host='https://cityio.media.mit.edu/'
 cityIO_output_path=host+'api/table/update/'+table_name
@@ -242,3 +241,5 @@ for energy_ind in ['Mobility']:
                       'category': 'Energy', 'value': random.random()})
 r = requests.post(cityIO_output_path+'/indicators', data = json.dumps(indicators))
 print(r)
+
+json.dump(indicators, open(BASELINE_INDICATORS_PATH, 'w'))

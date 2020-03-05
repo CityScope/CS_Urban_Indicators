@@ -6,6 +6,8 @@ Created on Mon Mar  2 12:20:41 2020
 @author: doorleyr
 """
 import json
+import datetime
+#import copy
 from osm_amenity_tools import *
 from indicator_tools import *
 import pandas as pd
@@ -30,13 +32,17 @@ def initialise():
     Steps that only need to be performed once when the model starts running
     """
     print('Initialising')
-    global geogrid, amenity_scores, basic_stats, baseline_indicators, indicators
+    global geogrid, baseline_amenity_scores, amenity_scores, basic_stats 
+    global indicators, indicator_name_order
     with urllib.request.urlopen(cityIO_get_url+'/GEOGRID') as url:
     #get the GEOGRID from cityI/O
         geogrid=json.loads(url.read().decode())
-    amenity_scores=pd.read_csv(AMENITY_SCORES_PATH)
-    baseline_indicators=json.load(open(BASELINE_INDICATORS_PATH))
-    indicators=baseline_indicators.copy()
+    baseline_amenity_scores=pd.read_csv(AMENITY_SCORES_PATH)
+    amenity_scores=baseline_amenity_scores.copy()
+#    baseline_indicators=json.load(open(BASELINE_INDICATORS_PATH))
+#    indicators=copy.deepcopy(baseline_indicators)
+    indicators=json.load(open(BASELINE_INDICATORS_PATH))
+    indicator_name_order=[ind['name'] for ind in indicators]
     basic_stats=json.load(open(BASIC_STATS_PATH))
     
         
@@ -47,32 +53,62 @@ def perform_grid_updates(geogrid_data):
     city_io grid data
     """
     print('Performing updates')
-    global indicators
+    a = datetime.datetime.now()
+    global indicators, amenity_scores
+    
+    amenity_scores=baseline_amenity_scores.copy()
+    
     residents=basic_stats['residents']
     employees=basic_stats['employees']
     
 #    density_indicators=indicators['density']
 #    diversity_indicators=indicators['diversity']
     
+    mixed_use_pois= ['restaurants', 'pharmacies', 'gyms', 'hotels', 'nightlife']
+    
+    # update numbers of employees, residents and amenities
     for cell in geogrid_data:
         if 'Residential' in cell['name']:
             residents+=PEOPLE_PER_RESI_BLD
         elif 'Office' in cell['name']:
             employees+=PEOPLE_PER_OFFICE_BLD
-        
+        elif cell['name']=='Mix-use':
+            amenity_scores.loc[amenity_scores['sub_sub_cat'].isin(mixed_use_pois), 'num_present']+=1
+
+    # Update the residential and employment density scores    
     residential_density_score=residents/basic_stats['max_residents']
     employment_density_score=employees/basic_stats['max_employees']
     
-    for ind in indicators:
-        if ind['name']=='Residential Density':
-            ind['value']=residential_density_score
-        elif ind['name']=='Employment Density':
-            ind['value']=employment_density_score  
-        elif ind['name']=='Residential/Employment Ratio':
-            ind['value']=min(residents, employees)/max(residents, employees) 
-            
+    indicators[indicator_name_order.index('Residential Density')]['value'
+               ]=residential_density_score
+    indicators[indicator_name_order.index('Employment Density')]['value'
+               ]=employment_density_score
+    indicators[indicator_name_order.index('Residential/Employment Ratio')]['value'
+               ]=min(residents, employees)/max(residents, employees) 
+
+    # Update the amenity density scores                     
+    total_people=residents+employees
+    amenity_scores['quota']=total_people*amenity_scores['quota_per_k_people']/1e6
+    amenity_scores['score']=amenity_scores.apply(lambda row: min(1,row['num_present']/row['quota']), axis=1)
+
+    # TODO: aggregation should be a helper function as it's use in two scripts
+    sub_cat_scores=amenity_scores.groupby('sub_cat').agg({'num_present': 'sum',
+                                     'score': 'mean',
+                                     'category': 'first'})
+    # category density scores    
+    cat_scores=sub_cat_scores.groupby('category').agg({'num_present': 'sum',
+                                 'score': 'mean'}) 
+    for ind, row in cat_scores.iterrows():
+        indicators[indicator_name_order.index('{} Density'.format(ind))]['value'
+                   ]=row['score']
+    b = datetime.datetime.now()  
+    print('Density and Diversity computations took {} seconds'.format((b-a).microseconds/1e6))
+     
     r = requests.post(cityIO_post_url+'/indicators', data = json.dumps(indicators))
     print('Density Indicators: {}'.format(r))
+    c = datetime.datetime.now()
+    print('Sending Density and Diversity data took {} seconds'.format((c-b).microseconds/1e6))
+
     
 #    density_indicators['Residential Density']=residential_density_score
 #    density_indicators['Employment Density']=employment_density_score
@@ -136,8 +172,11 @@ while True:
         pass
     else:
         try:
+            a = datetime.datetime.now()
             with urllib.request.urlopen(cityIO_get_url+'/GEOGRIDDATA') as url:
                 geogrid_data=json.loads(url.read().decode())
+            b = datetime.datetime.now()
+            print('Getting GEOGRID data took {} seconds'.format((b-a).microseconds/1e6))
             perform_grid_updates(geogrid_data)
             last_grid_hash_Id=grid_hash_id
         except:

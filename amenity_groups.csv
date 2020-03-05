@@ -1,25 +1,25 @@
 category,sub_cat,sub_sub_cat,quota_per_k_people
-3rd places Day,Hotels,hotels,0.14
-3rd places Day,Restaurants,restaurants,2
-3rd places Day,Leisure and Wellness,pharmacies,0.31
-3rd places Day,Leisure and Wellness,dentist,0.27
-3rd places Day,Leisure and Wellness,ophthalmologists,0.1
-3rd places Day,Leisure and Wellness,gyms,0.07
-3rd places Day,Leisure and Wellness,spas,0.02
-3rd places Day,Leisure and Wellness,clinic,0.045
-3rd places Day,Leisure and Wellness,daycare,1.38
-3rd places Day,Leisure and Wellness,hospital,0.016
-3rd places Day,Leisure and Wellness,nursery,6.38
-3rd places Day,Culture,libraries,0.04
-3rd places Day,Culture,museums,0.05
-3rd places Day,Culture,cinema,0.126
-3rd places Day,Culture,bookstore,0.102
-3rd places Day,Culture,art-gallery,0.0181
-3rd places Day,Gym and Sports,sports_facilities,0.6
-3rd places Day,Gym and Sports,gyms,0.07
-3rd places Day,Gym and Sports,sports_shop,0.15
-3rd places Night,nightlife,nightlife,0.89
-Educational,Educational,schools,0.03
-Educational,Educational,universities,0.02
-Educational,Educational,kindergarten,0.028
-Educational,Educational,further_education,0.05
+3rd Places Day,Hotels,hotels,0.14
+3rd Places Day,Restaurants,restaurants,2
+3rd Places Day,Leisure and Wellness,pharmacies,0.31
+3rd Places Day,Leisure and Wellness,dentist,0.27
+3rd Places Day,Leisure and Wellness,ophthalmologists,0.1
+3rd Places Day,Leisure and Wellness,gyms,0.07
+3rd Places Day,Leisure and Wellness,spas,0.02
+3rd Places Day,Leisure and Wellness,clinic,0.045
+3rd Places Day,Leisure and Wellness,daycare,1.38
+3rd Places Day,Leisure and Wellness,hospital,0.016
+3rd Places Day,Leisure and Wellness,nursery,6.38
+3rd Places Day,Cultural Inst,libraries,0.04
+3rd Places Day,Cultural Inst,museums,0.05
+3rd Places Day,Cultural Inst,cinema,0.126
+3rd Places Day,Cultural Inst,bookstore,0.102
+3rd Places Day,Cultural Inst,art-gallery,0.0181
+3rd Places Day,Gym and Sports,sports_facilities,0.6
+3rd Places Day,Gym and Sports,gyms,0.07
+3rd Places Day,Gym and Sports,sports_shop,0.15
+3rd Places Night,nightlife,nightlife,0.89
+Educational Inst,Educational Inst,schools,0.03
+Educational Inst,Educational Inst,universities,0.02
+Educational Inst,Educational Inst,kindergarten,0.028
+Educational Inst,Educational Inst,further_education,0.05

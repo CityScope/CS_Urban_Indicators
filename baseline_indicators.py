@@ -195,7 +195,7 @@ income_level_diversity=shannon_equitability_score(income_level_counts)
 # Save results
 # =============================================================================
 
-amenity_scores.to_csv('tables/corktown/amenity_scores.csv', index=False)
+amenity_scores.to_csv(AMENITY_SCORES_PATH, index=False)
 
 
 host='https://cityio.media.mit.edu/'
@@ -214,12 +214,12 @@ cityIO_output_path=host+'api/table/update/'+table_name
 indicators=[
             {'name': 'Residential Density','category': 'Density', 'value': residential_density_score},
             {'name': 'Employment Density','category': 'Density', 'value': employment_density_score},
-            {'name': '3rd Places Day Density','category': 'Density', 'value': cat_scores.loc['3rd places Day', 'score']},
-            {'name': '3rd Places Night Density','category': 'Density', 'value': cat_scores.loc['3rd places Night', 'score']},
-            {'name': 'Educational Inst Density','category': 'Density', 'value': cat_scores.loc['Educational', 'score']},
-            {'name': 'Cultural Inst Density','category': 'Density', 'value': sub_cat_scores.loc['Culture', 'score']},
+            {'name': '3rd Places Day Density','category': 'Density', 'value': cat_scores.loc['3rd Places Day', 'score']},
+            {'name': '3rd Places Night Density','category': 'Density', 'value': cat_scores.loc['3rd Places Night', 'score']},
+            {'name': 'Educational Inst Density','category': 'Density', 'value': cat_scores.loc['Educational Inst', 'score']},
+            {'name': 'Cultural Inst Density','category': 'Density', 'value': sub_cat_scores.loc['Cultural Inst', 'score']},
 #            {'name': 'Cultural Inst Diversity','category': 'Diversity', 'value': sub_cat_diversity.loc['Culture', 'diversity_score']},
-#            {'name': 'Residential/Employment Ratio','category': 'Diversity', 'value': resi_employ_ratio},
+            {'name': 'Residential/Employment Ratio','category': 'Diversity', 'value': resi_employ_ratio},
 #            {'name': 'Educational Inst Diversity','category': 'Diversity', 'value': sub_cat_diversity.loc['Educational', 'diversity_score']},
 #            {'name': '3rd Places Diversity','category': 'Diversity', 'value': cat_diversity.loc['3rd places Day', 'diversity_score']},
 #            {'name': 'Job Type Diversity','category': 'Diversity', 'value': job_type_diversity},

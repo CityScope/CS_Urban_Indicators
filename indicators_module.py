@@ -68,9 +68,9 @@ def perform_grid_updates(geogrid_data):
     
     # update numbers of employees, residents and amenities
     for cell in geogrid_data:
-        if 'Residential' in cell['name']:
+        if cell['name']=='Residential':
             residents+=PEOPLE_PER_RESI_BLD
-        elif 'Office' in cell['name']:
+        elif cell['name'] == ['Office Tower']:
             employees+=PEOPLE_PER_OFFICE_BLD
         elif cell['name']=='Mix-use':
             amenity_scores.loc[amenity_scores['sub_sub_cat'].isin(mixed_use_pois), 'num_present']+=1

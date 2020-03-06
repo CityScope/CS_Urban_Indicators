@@ -5,3 +5,6 @@ config.py
 
 # Ignore files in directory that contains locally downloaded shapefiles
 tables/shapes/*
+
+# Track directory with Kendall bounds (useful for testing)
+!tables/shapes/bounds

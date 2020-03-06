@@ -2,12 +2,14 @@ import requests
 import pandas as pd
 import geopandas as gpd
 import os
-from geofence import getZips
+from geofence import getZips,getOSMWeights
 from download_shapeData import SHAPES_PATH
 
 def ZBPCall(zipcodeList=None,NAICS_lvl=None,query=None,base_url = 'https://api.census.gov/data/2017/zbp',quietly=True):
 	'''
 	Wrapper to call the census API to get data from the Zip Code Business Patterns.
+	Documentation found in:
+	https://www.census.gov/data/developers/data-sets/cbp-nonemp-zbp/zbp-api.2017.html
 
 	Parameters
 	----------
@@ -43,6 +45,8 @@ def ZBPCall(zipcodeList=None,NAICS_lvl=None,query=None,base_url = 'https://api.c
 	if NAICS_lvl is not None:
 		if NAICS_lvl!=0:
 			df = df[df['NAICS2017'].astype(str).str.len()==NAICS_lvl]
+	df['EMP'] = df['EMP'].astype(float)
+	df['ESTAB'] = df['ESTAB'].astype(float)
 	return df
 
 def main():
@@ -50,9 +54,18 @@ def main():
 	Usage example
 	'''
 	bounds = gpd.read_file(os.path.join(SHAPES_PATH,'bounds','Kendall_bounds.shp')).to_crs({'init':"EPSG:4326"})['geometry'].values[0]
+
 	zipcodeList = getZips(bounds=bounds,quietly=False)
 	df = ZBPCall(zipcodeList=zipcodeList,quietly=False)
 	print(df)
+
+	zipShapes = getZips(bounds=bounds,asList=False)
+	weights = getOSMWeights(bounds,zipShapes,'ZCTA5CE10',quietly=False)
+
+	weighted = pd.merge(df,weights.rename(columns={'ZCTA5CE10':'zip code'}))
+	weighted['weighted_EMP']   = weighted['EMP']*weighted['weight']
+	weighted['weighted_ESTAB'] = weighted['ESTAB']*weighted['weight']
+	print(weighted[['weighted_EMP','weighted_ESTAB']].sum())
 
 if __name__ == '__main__':
 	main()

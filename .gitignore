@@ -1,5 +1,9 @@
 *.pyc
 
+# Ignore local jupyter notebook files
+.ipynb_checkpoints/*
+*.ipynb
+
 # Ignore config file that might contain API keys and local paths
 config.py
 

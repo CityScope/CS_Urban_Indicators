@@ -1,5 +1,38 @@
 # README
 
+## Industry-Occupation matrix
+
+Data available at: 
+```
+https://www.bls.gov/oes/tables.htm
+```
+
+Download "National industry-specific and by ownership." The ownership part is not relevant, what matters is the industry specific. For 2018, download the file:
+```
+https://www.bls.gov/oes/special.requests/oesm18in4.zip
+```
+
+The data is available a multiple NAICS levels, with the 4-digit NAICS being the most fined grained that is complete. Due to privacy concerns, data at the 5 and 6 digit levels are available for select NAICS codes. Note that if we needed for example the 5-digit level, we would need to combine information from the 4-digit level with the 5-digit level to obtain the full picture where some industries would be at the 4-digit level and others at the 5-digit level. For now, we will just stick to the 4-digi level. If we needed to move up, we can simply aggregate from this level up. For 2018, the relevant file is:
+```
+nat4d_M2018_dl.xlsx
+```
+
+The script downloadIO.py takes care of everything by generating a csv file in tables/IO:
+```
+tables/IO/oesm18in4/nat4d_M2018_dl.csv
+```
+
+**IMPORTANT:** when using nat4d_M2018_dl.csv, we need to select a level of aggregation of the **occupations**. This is done by filtering the column 
+*OCC_GROUP*. The options are:
+```
+major: 22 categories including 'Architecture and Engineering'
+minor: 93 categories including 'Architects, Surveyors, and Cartographers' and 'Engineers'
+broad: 455 categories including 'Marine Engineers and Naval Architects'; 'Surveyors, Cartographers, and Photogrammetrists'; Mechanical Engineers'; etc.
+detailed: 808 categories
+```
+
+The column *TOT_EMP* has the employment in each occupation in each industry. 
+
 ## Locally download shapefiles
 
 Running the following script will create an untracked directory in tables/shapes with shapefiles for census block groups, census tracts, and counties for 2019:

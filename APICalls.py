@@ -2,8 +2,33 @@ import requests
 import pandas as pd
 import geopandas as gpd
 import os
-from geofence import getZips,getOSMWeights
-from download_shapeData import SHAPES_PATH
+import numpy as np
+import zipfile
+from io import BytesIO
+from bs4 import BeautifulSoup
+try:
+	from config import BEA_KEY,CENSUS_API_KEY
+except:
+	BEA_KEY,CENSUS_API_KEY = None,None
+
+def fetch(url,params=None,nAttempts=5,quietly=True):
+	'''
+	Attempts to retrieve the given url until status_code equals 200.
+	'''
+	attempts = 0
+	success = False
+	while (attempts<nAttempts)&(not success):
+		if not quietly:
+			print(url,'Attempt:',attempts)
+		r = requests.get(url,params=params)
+		if r.status_code==200:
+			success=True
+		else:
+			attempts+=1
+	return r
+
+def qprint(s,quietly):
+	print((s if not quietly else ''),end=('' if quietly else '\n'))
 
 def ZBPCall(zipcodeList=None,NAICS_lvl=None,query=None,base_url = 'https://api.census.gov/data/2017/zbp',quietly=True):
 	'''
@@ -40,7 +65,7 @@ def ZBPCall(zipcodeList=None,NAICS_lvl=None,query=None,base_url = 'https://api.c
 
 	if not quietly:
 		print(query)
-	r = requests.get(base_url,params=query)
+	r = fetch(base_url,params=query)
 	df = pd.DataFrame(r.json()[1:],columns=r.json()[0])
 	if NAICS_lvl is not None:
 		if NAICS_lvl!=0:
@@ -50,7 +75,7 @@ def ZBPCall(zipcodeList=None,NAICS_lvl=None,query=None,base_url = 'https://api.c
 	return df
 
 
-def ACSCall(varNames,level='tract',groupName=None,year=2018,base_url = 'https://api.census.gov/data/{}/acs/acs5',extension='',quietly=True,someStates=False):
+def ACSCall(varNames,level='tract',groupName=None,year=2018,API_KEY=CENSUS_API_KEY,base_url = 'https://api.census.gov/data/{}/acs/acs5',extension='',quietly=True,someStates=False):
 	'''
 	Calls American Commnuity Survey API:
 	https://api.census.gov/data/2018/acs/acs5.html
@@ -69,6 +94,10 @@ def ACSCall(varNames,level='tract',groupName=None,year=2018,base_url = 'https://
 	year : int (default=2018)
 		Yer to get data for. Not all years are available. See documentation at:
 		https://api.census.gov/data.html
+	API_KEY : str
+		API KEY. You can request one at:
+		https://api.census.gov/data/2018/acs/acs5.html
+		Either pass it as a parameter, or define it inside config.py.
 	base_url : str (optional)
 		Base url of api. 
 	extension : str (optional)
@@ -82,11 +111,13 @@ def ACSCall(varNames,level='tract',groupName=None,year=2018,base_url = 'https://
 	out : pandas.DataFrame
 		Table with results
 	'''
+	if API_KEY is None:
+		raise NameError('Invalid API KEY')
 	year = str(year)
 	base_url = base_url.format(year)
 	if level in ['county','tract','block group']:
-		query = {'get':'B01003_001E','for':'state:*','key':CENSUS_API_KEY}
-		r = requests.get(base_url,params=query)
+		query = {'get':'B01003_001E','for':'state:*','key':API_KEY}
+		r = fetch(base_url,params=query)
 		qprint(r.url,quietly)
 		qprint(r.status_code,quietly)
 		states = set(pd.DataFrame(r.json()[1:],columns=r.json()[0])['state'])
@@ -100,10 +131,10 @@ def ACSCall(varNames,level='tract',groupName=None,year=2018,base_url = 'https://
 		for s in states:
 			qprint(s,quietly)
 			if groupName is None:
-				query = {'get':','.join(varNames),'for':'{}:*'.format(level),'in':'state:{}'.format(s),'key':CENSUS_API_KEY}
+				query = {'get':','.join(varNames),'for':'{}:*'.format(level),'in':'state:{}'.format(s),'key':API_KEY}
 			else:
-				query = {'get':'group({})'.format(groupName),'for':'{}:*'.format(level),'in':'state:{}'.format(s),'key':CENSUS_API_KEY}
-			r = requests.get(base_url,params=query)
+				query = {'get':'group({})'.format(groupName),'for':'{}:*'.format(level),'in':'state:{}'.format(s),'key':API_KEY}
+			r = fetch(base_url,params=query)
 			qprint(r.url,quietly)
 			qprint(r.status_code,quietly)
 			df = pd.DataFrame(r.json()[1:],columns=r.json()[0])
@@ -111,10 +142,10 @@ def ACSCall(varNames,level='tract',groupName=None,year=2018,base_url = 'https://
 		out = pd.concat(out,sort=True)
 	else:
 		if groupName is None:
-			query = {'get':','.join(varNames),'for':'{}:*'.format(level),'key':CENSUS_API_KEY}
+			query = {'get':','.join(varNames),'for':'{}:*'.format(level),'key':API_KEY}
 		else:
-			query = {'get':'group({})'.format(groupName),'for':'{}:*'.format(level),'key':CENSUS_API_KEY}
-		r = requests.get(base_url,params=query)
+			query = {'get':'group({})'.format(groupName),'for':'{}:*'.format(level),'key':API_KEY}
+		r = fetch(base_url,params=query)
 		qprint(r.url,quietly)
 		qprint(r.status_code,quietly)
 		out = pd.DataFrame(r.json()[1:],columns=r.json()[0])
@@ -129,23 +160,123 @@ def ACSCall(varNames,level='tract',groupName=None,year=2018,base_url = 'https://
 		out['Census Tract Number'] = out['state']+out['county']+out['tract']
 	return out
 
-def main():
+def BEACall(years,industries=[],API_KEY=BEA_KEY,base_url = 'https://apps.bea.gov/api/data/'):
 	'''
-	Usage example
+	Calls the Bureu of Economic Analysis API to get GDP data.
+	This function is not general, it only gets GDP data.
+	See documentation at:
+	https://apps.bea.gov/API/signup/index.cfm
+
+	Parameters
+	----------
+	years : list 
+		Years for which to get the GDP for.
+		To get all years, pass empty list.
+	industries : list (optional)
+		Industries to get the data for. 
+	API_KEY : str 
+		Assigned API KEY. You can request one at:
+		https://apps.bea.gov/API/signup/index.cfm
+		You can pass it as a parameter or define it in config.py.
+
+	Returns
+	-------
+	df : pandas.DataFrame
+		Table with query results. 
 	'''
-	bounds = gpd.read_file(os.path.join(SHAPES_PATH,'bounds','Kendall_bounds.shp')).to_crs({'init':"EPSG:4326"})['geometry'].values[0]
+	if API_KEY is None:
+		raise NameError('Invalid API KEY')
+	query = {
+		'UserID':API_KEY,'method':'GetData','DataSetName':'underlyingGDPbyIndustry',
+		'tableID':'ALL','Frequency':'A',
+		'Year':('ALL' if len(years)==0 else ','.join(map(str,years))),
+		'Industry':('ALL' if len(industries)==0 else ','.join(map(str,industries))),
+	}
+	r = fetch(base_url,params=query)
+	data = r.json()['BEAAPI']['Results']['Data']
+	df = pd.DataFrame(data)
+	return df
 
-	zipcodeList = getZips(bounds=bounds,quietly=False)
-	df = ZBPCall(zipcodeList=zipcodeList,quietly=False)
-	print(df)
+def patentsViewLatest(tableName=None):
+	'''
+	Gets links for the latest available data dumps from:
+	https://www.patentsview.org/download/
 
-	zipShapes = getZips(bounds=bounds,asList=False)
-	weights = getOSMWeights(bounds,zipShapes,'ZCTA5CE10',quietly=False)
+	Parameters
+	----------
+	tableName : str (optional)
+		Name of table to get the link for. 
+	'''
+	url = 'https://www.patentsview.org/download/'
+	r = fetch(url)
+	soup = BeautifulSoup(r.content, 'html.parser')
+	table = soup.find('table')
+	latestLinks = []
+	for tr in table.find_all('tr'):
+		links = tr.find_all('a')
+		if len(links)!=0:
+			for link in links:
+				if (link['href'][-4:]=='.zip'):
+					latestLinks.append(link['href'])
+	if tableName is None:
+		return latestLinks
+	else:
+		return [l for l in latestLinks if l[:-8:].split('/')[-1]==tableName][0]
 
-	weighted = pd.merge(df,weights.rename(columns={'ZCTA5CE10':'zip code'}))
-	weighted['weighted_EMP']   = weighted['EMP']*weighted['weight']
-	weighted['weighted_ESTAB'] = weighted['ESTAB']*weighted['weight']
-	print(weighted[['weighted_EMP','weighted_ESTAB']].sum())
+def patentsViewListTables():
+	'''
+	Lists all the tables available in:
+	https://www.patentsview.org/download
+	'''
+	latestLinks = patentsViewLatest()
+	tableNames = [l.split('/')[-1].split('.')[0] for l in latestLinks]
+	return tableNames
 
-if __name__ == '__main__':
-	main()
+def patentsViewDownload(tableName):
+	'''
+	Downloads the given table from:
+	https://www.patentsview.org/download/
+
+	For a list of available tables, run:
+	> patentsViewListTables()
+	'''
+	table_url = patentsViewLatest(tableName=tableName)
+	table = pd.read_csv(table_url, compression='zip', header=0, sep=',', quotechar='"',delimiter='\t')
+	return table
+
+def load_zipped_excel(url,fname):
+	'''
+	Loads the given file from the zipped xlsx file in the given url.
+	'''
+	r = fetch(url)
+	zipdata = BytesIO()
+	zipdata.write(r.content)
+	zf = zipfile.ZipFile(zipdata)
+	try:
+		empRaw = pd.read_excel(zf.open(fname))
+		return empRaw
+	except:
+		print(zf.namelist())
+		raise NameError('File not found')
+
+# def main():
+# 	'''
+# 	Usage example
+# 	'''
+# 	SHAPES_PATH  = 'tables/shapes/' 
+# 	bounds = gpd.read_file(os.path.join(SHAPES_PATH,'bounds','Kendall_bounds.shp')).to_crs({'init':"EPSG:4326"})['geometry'].values[0]
+
+# 	zipcodeList = getZips(bounds=bounds,quietly=False)
+# 	df = ZBPCall(zipcodeList=zipcodeList,quietly=False)
+# 	print(df)
+
+# 	zipShapes = getZips(bounds=bounds,asList=False)
+# 	weights = getOSMWeights(bounds,zipShapes,'ZCTA5CE10',quietly=False)
+
+# 	weighted = pd.merge(df,weights.rename(columns={'ZCTA5CE10':'zip code'}))
+# 	weighted['weighted_EMP']   = weighted['EMP']*weighted['weight']
+# 	weighted['weighted_ESTAB'] = weighted['ESTAB']*weighted['weight']
+# 	print(weighted[['weighted_EMP','weighted_ESTAB']].sum())
+
+# if __name__ == '__main__':
+# 	main()

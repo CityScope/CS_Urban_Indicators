@@ -4,15 +4,15 @@ import os
 import osmnx as ox
 from download_shapeData import SHAPES_PATH,SHAPE_LEVELS
 
-def check_shapes(year_version = '2019'):
+def check_shapes(year_version = '2019',shapesPath=SHAPES_PATH):
     '''
     Check if shapes have been downloaded
     '''
     for shape_level in SHAPE_LEVELS:
-        if not os.path.isdir(os.path.join(SHAPES_PATH,year_version+'_'+shape_level.lower())):
+        if not os.path.isdir(os.path.join(shapesPath,year_version+'_'+shape_level.lower())):
             raise NameError('Missing shapefiles for:',shape_level)
 
-def getZips(bounds=None,cbsaCode=None,zipShapes=None,asList=True,quietly=True):
+def getZips(bounds=None,cbsaCode=None,shapesPath=SHAPES_PATH,zipShapes=None,asList=True,quietly=True):
     '''
     Get the zipcodes for the given bounds or for the given cbsaCode
 
@@ -22,6 +22,9 @@ def getZips(bounds=None,cbsaCode=None,zipShapes=None,asList=True,quietly=True):
         Polygon of bounds in WGS84 (EPSG:4326).
     cbsaCode : str
         CBSA Code of metro area to select
+    shapesPath : str
+        Path to shapes: SHAPES_PATH.
+        > SHAPES_PATH  = 'tables/shapes/' 
     zipShapes : geopandas.GeoDataFrame (optional)
         If provided, it will not loaded. 
         Providing the shapes is preferred when running this function multiple times.

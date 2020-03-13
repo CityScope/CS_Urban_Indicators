@@ -12,3 +12,7 @@ tables/shapes/*
 
 # Track directory with Kendall bounds (useful for testing)
 !tables/shapes/bounds
+
+# Ignore files in innovation_data directory, except for the fitted lasso coefficients
+tables/innovation_data/*
+!tables/innovation_data/lasso_coefs.csv

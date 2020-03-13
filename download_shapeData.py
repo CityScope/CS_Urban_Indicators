@@ -5,25 +5,9 @@ import sys
 import zipfile
 from io import BytesIO
 from pathlib import Path
-# Global variables also used by functions outside this script
+from APICalls import fetch
 SHAPES_PATH  = 'tables/shapes/' 
 SHAPE_LEVELS = ['BG','TRACT','COUNTY','CBSA','ZCTA5']
-
-def fetch(url,nAttempts=5,quietly=True):
-    '''
-    Attempts to retrieve the given url until status_code equals 200.
-    '''
-    attempts = 0
-    success = False
-    while (attempts<nAttempts)&(not success):
-        if not quietly:
-            print(url,'Attempt:',attempts)
-        r = requests.get(url)
-        if r.status_code==200:
-            success=True
-        else:
-            attempts+=1
-    return r
 
 def getShapes(shape_level,year_version,shapesPath,base_url = 'https://www2.census.gov/geo/tiger/',quietly=True):
     '''

@@ -93,7 +93,7 @@ class InnoIndicator:
 			 '51-2': 30.385813540925056,
 			 ...
 		'''
-		if self.combinedSkills:
+		if self.combinedSkills is None:
 			self.load_sks_data()
 		totalWorkers = sum(worker_composition.values())
 		nWorkers = pd.DataFrame(worker_composition.items(),columns=['SELECTED_LEVEL','N'])

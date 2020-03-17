@@ -17,6 +17,7 @@ class Handler:
 		self.sleep_time = 0.1
 		self.nAttempts = 5
 
+		self.front_end_url   = self.host+'CS_cityscopeJS/?cityscope='+self.table_name
 		self.cityIO_get_url  = self.host+'api/table/'+self.table_name
 		self.cityIO_post_url = self.host+'api/table/update/'+self.table_name
 		self.GEOGRID_varname = GEOGRID_varname
@@ -24,6 +25,9 @@ class Handler:
 		self.indicators = {}
 		self.grid_hash_id = None
 		self.grid_hash_id = self.get_hash()
+
+	def check_table(self):
+		print(self.front_end_url)
 
 	def list_indicators(self):
 		'''

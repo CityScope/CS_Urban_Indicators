@@ -165,8 +165,12 @@ class Handler:
 		'''
 		return self._get_grid_data()
 
-	def listen(self):
+	def listen(self,start_with_update=True):
 		self.test_indicators()
+		if start_with_update:
+			grid_hash_id = self.get_hash()
+			geogrid_data = self._get_grid_data()
+			self._update_indicators(geogrid_data)
 		while True:
 			sleep(self.sleep_time)
 			grid_hash_id = self.get_hash()

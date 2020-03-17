@@ -45,8 +45,8 @@ class Density_Proximity(Indicator):
 		for cell in geogrid_data:
 			if cell['name']=='Residential':
 				residents+=self.PEOPLE_PER_RESI_BLD
-			elif cell['name'] == ['Office Tower']:
-				employees+=PEOPLE_PER_OFFICE_BLD
+			elif cell['name'] == 'Office Tower':
+				employees+=self.PEOPLE_PER_OFFICE_BLD
 			elif cell['name']=='Mix-use':
 				self.amenity_scores.loc[self.amenity_scores['sub_sub_cat'].isin(mixed_use_pois), 'num_present']+=1
 
@@ -77,15 +77,14 @@ class Density_Proximity(Indicator):
 									 'score': 'mean'}) 
 		for ind, row in cat_scores.iterrows():
 			indicators[self.indicator_name_order.index('{} Density'.format(ind))]['value'
-					   ]=row['score']
-
+					   ]=row['score']  
 		return indicators
 
 def main():
 	seashell = ShellIndicator(name='seashell')
 	indicators = Density_Proximity(name="indicators")
 
-	H = Handler('corktown')
+	H = Handler('corktown', quietly=False)
 	H.add_indicator(seashell)
 	H.add_indicator(indicators)
 

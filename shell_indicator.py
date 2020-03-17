@@ -51,8 +51,8 @@ class Density_Proximity(Indicator):
 				self.amenity_scores.loc[self.amenity_scores['sub_sub_cat'].isin(mixed_use_pois), 'num_present']+=1
 
 		# Update the residential and employment density scores    
-		residential_density_score=residents/self.basic_stats['max_residents']
-		employment_density_score=employees/self.basic_stats['max_employees']
+		residential_density_score=min(1, residents/self.basic_stats['max_residents'])
+		employment_density_score=min(1, employees/self.basic_stats['max_employees'])
 
 		indicators = self.indicators
 

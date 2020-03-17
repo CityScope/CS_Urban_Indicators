@@ -15,7 +15,7 @@ class Handler:
 		self.cityIO_post_url = self.host+'api/table/update/'+self.table_name
 
 		self.indicators = {}
-		self.grid_hash_Id = self.get_hash()
+		self.grid_hash_id = self.get_hash()
 
 	def list_indicators(self):
 		'''
@@ -107,7 +107,7 @@ class Handler:
 			if not self.quietly:
 				print('Cant access cityIO hashes')
 			sleep(1)
-			grid_hash_id=self.grid_hash_Id
+			grid_hash_id=self.grid_hash_id
 		return grid_hash_id
 
 	def _get_grid_data(self):
@@ -146,7 +146,7 @@ class Handler:
 		while True:
 			sleep(self.sleep_time)
 			grid_hash_id = self.get_hash()
-			if grid_hash_id!=self.grid_hash_Id:
+			if grid_hash_id!=self.grid_hash_id:
 				geogrid_data = self._get_grid_data()
 				self._update_indicators(geogrid_data)
 				self.grid_hash_id = grid_hash_id

@@ -1,5 +1,141 @@
 # README
 
+## Custom GEOGRID indicator (tldr)
+
+Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The functions *setup* and *load_module* are run when the indicator in initialized, and *return_indicator* should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. The following example implements a diversity-of-land-use indicator:
+```
+from toolbox import Indicator
+from toolbox import Handler
+
+from numpy import log
+from collections import Counter
+
+class Diversity(Indicator):
+
+	def setup(self):
+		self.name = 'Entropy'
+
+	def load_module(self):
+		pass
+
+	def return_indicator(self, geogrid_data):
+		uses = [row['land_use'] for row in geogrid_data]
+		uses = [use for use in uses if use != 'None']
+
+		frequencies = Counter(uses)
+		total = sum(frequencies.values(), 0.0)
+		entropy = 0
+		for key in frequencies:
+			p = frequencies[key]/total
+			entropy += -p*log(p)
+
+		return entropy
+
+div = Diversity()
+
+H = Handler('corktown', quietly=False)
+H.add_indicator(div)
+H.listen()
+```
+
+## Custom GEOGRID indicator tutorial
+
+As an example, we'll build a diversity of land use indicator for the corktown table. The process is the same for any table, provided that it has a GEOGRID variable. Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The functions *setup* and *load_module* are run when the indicator in initialized, and *return_indicator* should take in a geogrid_data object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers.
+
+To start developing the diversity indicator, you can use the Handler class to get the geogrid_data that is an input of the *return_indicator* function.
+```
+from toolbox import Handler
+H = Handler('corktown')
+geogrid_data = H.geogrid_data()
+```
+
+The returned *geogrid_data* object depends on the table, but for corktown it looks like this:
+```
+[{'color': [0, 0, 0, 0],
+  'height': 0.1,
+  'id': 0,
+  'interactive': True,
+  'land_use': 'None',
+  'name': 'empty',
+  'tui_id': None},
+ {'color': [247, 94, 133, 180],
+  'height': [0, 80],
+  'id': 1,
+  'interactive': True,
+  'land_use': 'PD',
+  'name': 'Office Tower',
+  'old_color': [133, 94, 247, 180],
+  'old_height': [0, 10],
+  'tui_id': None},
+ {'color': [0, 0, 0, 0],
+  'height': 0.1,
+  'id': 2,
+  'interactive': True,
+  'land_use': 'None',
+  'name': 'empty',
+  'tui_id': None},
+  ...
+]
+```
+
+We build the diversity indicator by delecting the 'land_use' variable in each cell and calculating the Shannon Entropy for this:
+```
+from numpy import log
+from collections import Counter
+uses = [row['land_use'] for row in geogrid_data]
+uses = [use for use in uses if use != 'None']
+
+frequencies = Counter(uses)
+
+total = sum(frequencies.values(), 0.0)
+entropy = 0
+for key in frequencies:
+	p = frequencies[key]/total
+	entropy += -p*log(p)
+```
+
+Now, we wrap this calculation in the *return_indicator* in a Diversity class that inherits the properties from the Indicator module: 
+```
+from toolbox import Indicator
+from numpy import log
+from collections import Counter
+
+class Diversity(Indicator):
+
+	def setup(self):
+		self.name = 'Entropy'
+
+	def load_module(self):
+		pass
+
+	def return_indicator(self, geogrid_data):
+		uses = [row['land_use'] for row in geogrid_data]
+		uses = [use for use in uses if use != 'None']
+
+		frequencies = Counter(uses)
+
+		total = sum(frequencies.values(), 0.0)
+		entropy = 0
+		for key in frequencies:
+			p = frequencies[key]/total
+			entropy += -p*log(p)
+
+		return entropy
+```
+
+Because this indicator is very simple, it does not need any parameters or data to calculate the value, which is why the *load_module* function is empty. The *setup* function defines the properties of the module, which in this case is just the name. 
+
+Finally, we run the indicator by instantiating the new class and passing it to a Handler object:
+```
+from toolbox import Handler
+
+div = Diversity()
+
+H = Handler('corktown', quietly=False)
+H.add_indicator(div)
+H.listen()
+```
+
 ## Industry-Occupation matrix
 
 Data available at: 

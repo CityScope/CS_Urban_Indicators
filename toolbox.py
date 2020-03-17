@@ -165,19 +165,33 @@ class Handler:
 		'''
 		return self._get_grid_data()
 
+	def perform_update(self,grid_hash_id=None):
+		'''
+		Performs single table update.
+		'''
+		if grid_hash_id is None: 
+			grid_hash_id = self.get_hash()	
+		geogrid_data = self._get_grid_data()
+		if not self.quietly:
+			print('Updating table with hash:',grid_hash_id)
+		
+		self._update_indicators(geogrid_data)
+		self.grid_hash_id = grid_hash_id
+
 	def listen(self,start_with_update=True):
+		if not self.quietly:
+			print('Testing indicators')
 		self.test_indicators()
 		if start_with_update:
-			grid_hash_id = self.get_hash()
-			geogrid_data = self._get_grid_data()
-			self._update_indicators(geogrid_data)
+			if not self.quietly:
+				print('Performing initial update')
+			self.perform_update()
+
 		while True:
 			sleep(self.sleep_time)
 			grid_hash_id = self.get_hash()
 			if grid_hash_id!=self.grid_hash_id:
-				geogrid_data = self._get_grid_data()
-				self._update_indicators(geogrid_data)
-				self.grid_hash_id = grid_hash_id
+				self.perform_update(grid_hash_id=grid_hash_id)
 
 class Indicator:
 	def __init__(self,name=None,category=None):

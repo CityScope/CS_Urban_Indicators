@@ -1,5 +1,6 @@
 import requests
 import json
+from warnings import warn
 from time import sleep
 
 class Handler:
@@ -60,7 +61,6 @@ class Handler:
 			self._new_value(geogrid_data,indicatorName)
 
 	def _new_value(self,geogrid_data,indicator_name):
-
 		I = self.indicators[indicator_name]
 		new_value = I.return_indicator(geogrid_data)
 		if isinstance(new_value,list)|isinstance(new_value,tuple):
@@ -71,7 +71,7 @@ class Handler:
 						json.dumps(val)
 						new_value[i] = {'value':val}
 					except:
-						print('Indicator return invalid type',indicator_name)
+						warnings.warn('Indicator return invalid type:'+str(indicator_name))
 			return list(new_value)
 		else:
 			if not isinstance(new_value,dict):
@@ -79,7 +79,7 @@ class Handler:
 					json.dumps(new_value)
 					new_value = {'value':new_value}
 				except:
-					print('Indicator return invalid type',indicator_name)
+					warnings.warn('Indicator return invalid type:'+str(indicator_name))
 			if ('name' not in new_value.keys()):
 				new_value['name'] = indicator_name
 			if ('category' not in new_value.keys())&(I.category is not None):
@@ -121,11 +121,10 @@ class Handler:
 			try:
 				grid_hash_id = hashes[self.GEOGRID_varname]
 			except:
-				print('WARNING: Table does not have a GEOGRIDDATA variable.')
+				warnings.warn('WARNING: Table does not have a GEOGRIDDATA variable.')
 				grid_hash_id = self.grid_hash_id
 		else:
-			if not self.quietly:
-				print('Cant access cityIO hashes')
+			warnings.warn('Cant access cityIO hashes')
 			sleep(1)
 			grid_hash_id=self.grid_hash_id
 		return grid_hash_id
@@ -135,7 +134,7 @@ class Handler:
 		if r.status_code==200:
 			geogrid_data = r.json()
 		else:
-			print('WARNING: Cant access GEOGRID data')
+			warnings.warn('WARNING: Cant access GEOGRID data')
 			sleep(1)
 			geogrid_data = None
 		return geogrid_data
@@ -151,6 +150,8 @@ class Handler:
 				success=True
 			else:
 				attempts+=1
+		if not success:
+			warnings.warn('FAILED TO RETRIEVE URL: '+url)
 		return r
 
 	def geogrid_data(self):

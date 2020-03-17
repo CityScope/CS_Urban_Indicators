@@ -3,7 +3,12 @@ import json
 from time import sleep
 
 class Handler:
-	def __init__(self,table_name,quietly=True):
+	'''
+	Class to handle the connection for indicators built based on data from the GEOGRID.
+
+	'''
+	def __init__(self, table_name, GEOGRID_varname = 'GEOGRIDDATA', quietly=True):
+
 		self.host = 'https://cityio.media.mit.edu/'
 		self.table_name = table_name
 		self.quietly = quietly
@@ -13,8 +18,10 @@ class Handler:
 
 		self.cityIO_get_url  = self.host+'api/table/'+self.table_name
 		self.cityIO_post_url = self.host+'api/table/update/'+self.table_name
+		self.GEOGRID_varname = GEOGRID_varname
 
 		self.indicators = {}
+		self.grid_hash_id = None
 		self.grid_hash_id = self.get_hash()
 
 	def list_indicators(self):
@@ -53,9 +60,18 @@ class Handler:
 			self._new_value(geogrid_data,indicatorName)
 
 	def _new_value(self,geogrid_data,indicator_name):
+
 		I = self.indicators[indicator_name]
 		new_value = I.return_indicator(geogrid_data)
 		if isinstance(new_value,list)|isinstance(new_value,tuple):
+			for i in range(len(new_value)):
+				val = new_value[i]
+				if not isinstance(val,dict):
+					try:
+						json.dumps(val)
+						new_value[i] = {'value':val}
+					except:
+						print('Indicator return invalid type',indicator_name)
 			return list(new_value)
 		else:
 			if not isinstance(new_value,dict):
@@ -102,7 +118,11 @@ class Handler:
 		r = self.get_url(self.cityIO_get_url+'/meta/hashes')
 		if r.status_code==200:
 			hashes = r.json()
-			grid_hash_id = hashes['GEOGRIDDATA']
+			try:
+				grid_hash_id = hashes[self.GEOGRID_varname]
+			except:
+				print('WARNING: Table does not have a GEOGRIDDATA variable.')
+				grid_hash_id = self.grid_hash_id
 		else:
 			if not self.quietly:
 				print('Cant access cityIO hashes')
@@ -111,12 +131,11 @@ class Handler:
 		return grid_hash_id
 
 	def _get_grid_data(self):
-		r = self.get_url(self.cityIO_get_url+'/GEOGRIDDATA')
+		r = self.get_url(self.cityIO_get_url+'/'+self.GEOGRID_varname)
 		if r.status_code==200:
 			geogrid_data = r.json()
 		else:
-			if not self.quietly:
-				print('Cant access GEOGRID data')
+			print('WARNING: Cant access GEOGRID data')
 			sleep(1)
 			geogrid_data = None
 		return geogrid_data
@@ -150,7 +169,7 @@ class Handler:
 				geogrid_data = self._get_grid_data()
 				self._update_indicators(geogrid_data)
 				self.grid_hash_id = grid_hash_id
-				
+
 class Indicator:
 	def __init__(self,name=None,category=None):
 		self.name = name

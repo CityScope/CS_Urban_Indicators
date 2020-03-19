@@ -8,9 +8,10 @@ from APICalls import ACSCall,patentsViewDownload,load_zipped_excel
 from download_shapeData import SHAPES_PATH
 from sklearn.linear_model import Lasso
 from collections import defaultdict
+from toolbox import Indicator
 
-class InnoIndicator:
-	def __init__(self,occLevel=3,saveData=True,modelPath='tables/innovation_data'):
+class InnoIndicator(Indicator):
+	def setup(self,occLevel=3,saveData=True,modelPath='tables/innovation_data'):
 		self.occLevel   = (occLevel if occLevel<=2 else occLevel+1) 
 		self.modelPath  = modelPath
 		self.coefs_path = os.path.join(modelPath,'lasso_coefs.csv')
@@ -32,6 +33,13 @@ class InnoIndicator:
 		self.msa_knowl   = None
 		self.skill_names = pd.DataFrame([],columns=['Element ID','Element Name'])
 		self.combinedSkills = pd.DataFrame([],columns=['SELECTED_LEVEL','Element ID','Data Value'])
+
+	def return_indicator(self, geogrid_data):
+		skill_composition = self.grid_to_skills(geogrid_data)
+		return self.SKSindicator(skill_composition)
+
+	def grid_to_skills(self,geogrid_data):
+		return {}
 
 	def INDindicator(self,industry_composition):
 		'''
@@ -105,7 +113,7 @@ class InnoIndicator:
 		skill_composition = dict(skill_composition.values)
 		return skill_composition
 
-	def load_fitted_model(self,coefs_path=None):
+	def load_module(self,coefs_path=None):
 		'''
 		Loads the coefficients for the fitted model found in coefs_path.
 		'''

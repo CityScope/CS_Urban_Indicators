@@ -2,7 +2,7 @@
 
 ## Custom GEOGRID indicator (tldr)
 
-Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The functions *setup* and *load_module* are run when the indicator in initialized, and *return_indicator* should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. The following example implements a diversity-of-land-use indicator:
+Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The function *setup* acts like an *__init__* and can take any argument and is run when the object is instantiated. The function *load_module* is also run when the indicator in initialized, but it cannot take any arguments. Any inputs needed for *load_module* should be defined as properties in *setup*. The function *return_indicator* is the only required one and should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. The following example implements a diversity-of-land-use indicator:
 ```
 from toolbox import Indicator
 from toolbox import Handler
@@ -40,7 +40,7 @@ H.listen()
 
 ## Custom GEOGRID indicator tutorial
 
-As an example, we'll build a diversity of land use indicator for the corktown table. The process is the same for any table, provided that it has a GEOGRID variable. Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The functions *setup* and *load_module* are run when the indicator in initialized, and *return_indicator* should take in a geogrid_data object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers.
+As an example, we'll build a diversity of land use indicator for the corktown table. The process is the same for any table, provided that it has a GEOGRID variable. Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The function *setup* acts like an *__init__* and can take any argument and is run when the object is instantiated. The function *load_module* is also run when the indicator in initialized, but it cannot take any arguments. Any inputs needed for *load_module* should be defined as properties in *setup*. The function *return_indicator* is the only required one and should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. 
 
 To start developing the diversity indicator, you can use the Handler class to get the geogrid_data that is an input of the *return_indicator* function.
 ```
@@ -51,38 +51,83 @@ geogrid_data = H.geogrid_data()
 
 The returned *geogrid_data* object depends on the table, but for corktown it looks like this:
 ```
-[{'color': [0, 0, 0, 0],
-  'height': 0.1,
-  'id': 0,
-  'interactive': True,
-  'land_use': 'None',
-  'name': 'empty',
-  'tui_id': None},
- {'color': [247, 94, 133, 180],
-  'height': [0, 80],
-  'id': 1,
-  'interactive': True,
-  'land_use': 'PD',
-  'name': 'Office Tower',
-  'old_color': [133, 94, 247, 180],
-  'old_height': [0, 10],
-  'tui_id': None},
- {'color': [0, 0, 0, 0],
-  'height': 0.1,
-  'id': 2,
-  'interactive': True,
-  'land_use': 'None',
-  'name': 'empty',
-  'tui_id': None},
-  ...
-]
+{'features': [
+	{'geometry': {
+		'coordinates': [[
+		[-83.090119, 42.336341],
+		[-83.08988267486414, 42.33592640918421],
+		[-83.08932387040866, 42.33610174486739],
+		[-83.08956019554452, 42.33651633568318],
+		[-83.090119, 42.336341]
+		]],
+		'type': 'Polygon'
+		},
+	'properties': {
+		'interactive': False, 
+		'land_use': 'None', 
+		'tui_id': None
+		},
+	'type': 'Feature'
+	},
+	{'geometry': {
+		'coordinates': [[
+		[-83.08956019554452, 42.33651633568318],
+		[-83.08932387040866, 42.33610174486739],
+		[-83.08876506595318, 42.33627708055057],
+		[-83.08900139108904, 42.33669167136636],
+		[-83.08956019554452, 42.33651633568318]
+		]],
+		'type': 'Polygon'
+		},
+	'properties': {
+		'interactive': False, 
+		'land_use': 'PD', 
+		'tui_id': None
+		},
+	'type': 'Feature'
+	},
+	...
+	],
+'properties': {
+	'geogrid_to_tui_mapping': {},
+	'header': {
+		'cellSize': 50,
+		'latitude': 42.336341,
+		'longitude': -83.090119,
+		'ncols': 40,
+		'nrows': 46,
+		'rotation': 23
+		},
+	'types': {
+		'0': {
+			'class': 'buildingsClass',
+			'color': [0, 0, 0, 0],
+			'height': 0,
+			'name': 'Reset'
+			},
+		'1': {
+			'class': 'buildingsClass',
+			'color': [252, 151, 208, 180],
+			'height': [0, 40],
+			'name': 'Residential'
+			},
+		'2': {
+			'class': 'buildingsClass',
+			'color': [247, 93, 208, 180],
+			'height': [0, 40],
+			'name': 'Office'
+			},
+		...
+	},
+'type': 'FeatureCollection'
+}
 ```
 
 We build the diversity indicator by delecting the 'land_use' variable in each cell and calculating the Shannon Entropy for this:
 ```
 from numpy import log
 from collections import Counter
-uses = [row['land_use'] for row in geogrid_data]
+uses = [cell['properties']['land_use'] for cell in geogrid_data['features']]
 uses = [use for use in uses if use != 'None']
 
 frequencies = Counter(uses)

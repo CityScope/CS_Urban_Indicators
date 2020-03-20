@@ -29,7 +29,7 @@ class Diversity(Indicator):
 		pass
 
 	def return_indicator(self, geogrid_data):
-		uses = [cell['properties']['land_use'] for cell in geogrid_data['features']]
+		uses = [cell['land_use'] for cell in geogrid_data]
 		uses = [use for use in uses if use != 'None']
 
 		frequencies = Counter(uses)

@@ -19,7 +19,7 @@ class Diversity(Indicator):
 		pass
 
 	def return_indicator(self, geogrid_data):
-		uses = [cell['properties']['land_use'] for cell in geogrid_data['features']]
+		uses = [cell['land_use'] for cell in geogrid_data]
 		uses = [use for use in uses if use != 'None']
 
 		frequencies = Counter(uses)
@@ -51,83 +51,45 @@ geogrid_data = H.geogrid_data()
 
 The returned *geogrid_data* object depends on the table, but for corktown it looks like this:
 ```
-{'features': [
-	{'geometry': {
-		'coordinates': [[
-		[-83.090119, 42.336341],
-		[-83.08988267486414, 42.33592640918421],
-		[-83.08932387040866, 42.33610174486739],
-		[-83.08956019554452, 42.33651633568318],
-		[-83.090119, 42.336341]
-		]],
-		'type': 'Polygon'
-		},
-	'properties': {
-		'interactive': False, 
-		'land_use': 'None', 
+[
+	{
+		'color': [0, 0, 0, 0],
+		'height': 0.1,
+		'id': 0,
+		'interactive': True,
+		'land_use': 'None',
+		'name': 'empty',
 		'tui_id': None
-		},
-	'type': 'Feature'
 	},
-	{'geometry': {
-		'coordinates': [[
-		[-83.08956019554452, 42.33651633568318],
-		[-83.08932387040866, 42.33610174486739],
-		[-83.08876506595318, 42.33627708055057],
-		[-83.08900139108904, 42.33669167136636],
-		[-83.08956019554452, 42.33651633568318]
-		]],
-		'type': 'Polygon'
-		},
-	'properties': {
-		'interactive': False, 
-		'land_use': 'PD', 
+	{
+		'color': [247, 94, 133, 180],
+		'height': [0, 80],
+		'id': 1,
+		'interactive': True,
+		'land_use': 'PD',
+		'name': 'Office Tower',
+		'old_color': [133, 94, 247, 180],
+		'old_height': [0, 10],
 		'tui_id': None
-		},
-	'type': 'Feature'
+	},
+	{
+		'color': [0, 0, 0, 0],
+		'height': 0.1,
+		'id': 2,
+		'interactive': True,
+		'land_use': 'None',
+		'name': 'empty',
+		'tui_id': None
 	},
 	...
-	],
-'properties': {
-	'geogrid_to_tui_mapping': {},
-	'header': {
-		'cellSize': 50,
-		'latitude': 42.336341,
-		'longitude': -83.090119,
-		'ncols': 40,
-		'nrows': 46,
-		'rotation': 23
-		},
-	'types': {
-		'0': {
-			'class': 'buildingsClass',
-			'color': [0, 0, 0, 0],
-			'height': 0,
-			'name': 'Reset'
-			},
-		'1': {
-			'class': 'buildingsClass',
-			'color': [252, 151, 208, 180],
-			'height': [0, 40],
-			'name': 'Residential'
-			},
-		'2': {
-			'class': 'buildingsClass',
-			'color': [247, 93, 208, 180],
-			'height': [0, 40],
-			'name': 'Office'
-			},
-		...
-	},
-'type': 'FeatureCollection'
-}
+]
 ```
 
 We build the diversity indicator by delecting the 'land_use' variable in each cell and calculating the Shannon Entropy for this:
 ```
 from numpy import log
 from collections import Counter
-uses = [cell['properties']['land_use'] for cell in geogrid_data['features']]
+uses = [cell['land_use'] for cell in geogrid_data]
 uses = [use for use in uses if use != 'None']
 
 frequencies = Counter(uses)
@@ -154,7 +116,7 @@ class Diversity(Indicator):
 		pass
 
 	def return_indicator(self, geogrid_data):
-		uses = [cell['properties']['land_use'] for cell in geogrid_data['features']]
+		uses = [cell['land_use'] for cell in geogrid_data]
 		uses = [use for use in uses if use != 'None']
 
 		frequencies = Counter(uses)

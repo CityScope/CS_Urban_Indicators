@@ -35,7 +35,7 @@ class Handler:
 		self.sleep_time = 0.1
 		self.nAttempts = 5
 
-		self.front_end_url   = self.host+'CS_cityscopeJS/?cityscope='+self.table_name
+		self.front_end_url   = 'https://cityscope.media.mit.edu/CS_cityscopeJS/?cityscope='+self.table_name
 		self.cityIO_get_url  = self.host+'api/table/'+self.table_name
 		self.cityIO_post_url = self.host+'api/table/update/'+self.table_name
 		self.GEOGRID_varname = GEOGRID_varname
@@ -222,6 +222,8 @@ class Handler:
 
 		if not self.quietly:
 			print('Performing initial update')
+			print('Update package example:')
+			print(self.update_package())
 		self.perform_update()
 
 		while True:
@@ -240,9 +242,11 @@ class Indicator:
 
 	def return_indicator(self,geogrid_data):
 		'''
-		Function must return either a dictionary, a list, or a number
+		Function must return either a dictionary, a list, or a number.
+		When returning a dict follow the format:
+		{'name': 'Sea-Shell','value': 1.00}
 		'''
-		return []
+		return {}
 
 	def setup(self):
 		pass

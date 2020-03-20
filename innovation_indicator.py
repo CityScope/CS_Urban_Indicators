@@ -11,11 +11,12 @@ from collections import defaultdict
 from toolbox import Indicator
 
 class InnoIndicator(Indicator):
-	def setup(self,occLevel=3,saveData=True,modelPath='tables/innovation_data'):
+	def setup(self,occLevel=3,saveData=True,modelPath='tables/innovation_data',quietly=True):
 		self.occLevel   = (occLevel if occLevel<=2 else occLevel+1) 
 		self.modelPath  = modelPath
 		self.coefs_path = os.path.join(modelPath,'lasso_coefs.csv')
 		self.saveData   = saveData
+		self.quietly    = quietly
 
 		# Tables used for model training:
 		self.pop_msa = None
@@ -29,17 +30,24 @@ class InnoIndicator(Indicator):
 
 		self.RnD = None
 
+		self.IO_data     = None
 		self.msa_skills  = None
 		self.msa_knowl   = None
 		self.skill_names = pd.DataFrame([],columns=['Element ID','Element Name'])
 		self.combinedSkills = pd.DataFrame([],columns=['SELECTED_LEVEL','Element ID','Data Value'])
 
 	def return_indicator(self, geogrid_data):
-		skill_composition = self.grid_to_skills(geogrid_data)
+		industry_composition = self.grid_to_industries(geogrid_data)
+		worker_composition   = self.industries_to_occupations(industry_composition)
+		skill_composition    = self.occupations_to_skills(worker_composition)
 		return self.SKSindicator(skill_composition)
 
-	def grid_to_skills(self,geogrid_data):
-		return {}
+	def grid_to_industries(self,geogrid_data):
+		'''
+		THIS FUNCTION SHOULD TRANSLATE BETWEEN GEOGRIDDATA TO NAICS
+		'''
+		industry_composition = {'424':100,'813':10,'518':30,'313':50}
+		return industry_composition
 
 	def INDindicator(self,industry_composition):
 		'''
@@ -124,6 +132,8 @@ class InnoIndicator(Indicator):
 			self.coefs = dict(coefs_df[['Element ID','coef']].values)
 		else:
 			raise NameError('No fitted model found, please run train function.')
+		self.load_IO_data()
+		self.load_sks_data()
 
 	def train(self,coefs_path=None):
 		'''
@@ -179,6 +189,81 @@ class InnoIndicator(Indicator):
 
 		return pd.merge(coefs_df,self.skill_names,how='left').sort_values(by='coef',ascending=False)
 
+	def load_IO_data(self):
+		'''
+		Loads employment by industry and occupation. 
+		'''
+		if not os.path.isfile(os.path.join(self.modelPath,'IO_dataRaw.csv')):
+			url = 'https://www.bls.gov/oes/special.requests/oesm18in4.zip'
+			fname = 'oesm18in4/nat4d_M2018_dl.xlsx'
+			if not self.quietly:
+				print('Loading IO data')
+			IO_dataRaw = load_zipped_excel(url,fname)
+			IO_dataRaw.to_csv(os.path.join(self.modelPath,'IO_dataRaw.csv'),index=False)
+		else:
+			IO_dataRaw = pd.read_csv(os.path.join(self.modelPath,'IO_dataRaw.csv'))
+		IO_data = IO_dataRaw[(IO_dataRaw['OCC_GROUP']=='detailed')&(IO_dataRaw['TOT_EMP']!='**')]
+		IO_data['TOT_EMP'] = IO_data['TOT_EMP'].astype(float)
+		IO_data['NAICS'] = ('00'+IO_data['NAICS'].astype(str)).str[-6:]
+		IO_data['SELECTED_LEVEL'] = IO_data['OCC_CODE'].str[:self.occLevel]
+		self.IO_data = IO_data.groupby(['NAICS','SELECTED_LEVEL']).sum()[['TOT_EMP']].reset_index()
+
+	def industries_to_occupations(self,industry_composition,naicsLevel = None):
+		'''
+		Calculates the worker composition of the given industries.
+
+		Parameters
+		----------
+		industry_composition : dict
+		    NAICS codes (as strings) and number of workers per code. For example:
+		    industry_composition = {
+		                            '424':100,
+		                            '813':10,
+		                            '518':30,
+		                            '313':50
+		                            }
+		naicsLevel : int 
+		    NAICS level used. If not provided it will try to infer it from the data.
+		    
+		Returns
+		-------
+		worker_composition : dict
+			Codes of occupations (at the selected level) and number of workers working in each.
+			worker_composition = {
+								  '11-1': 5.482638676590663,
+								  '11-2': 2.618783841892787,
+								  '11-3': 4.172466727284003,
+								  '11-9': 1.0466603476986416,
+								  '13-1': 8.153575049183983,
+								  '13-2': 2.4813093308593723,
+								  '15-1': 13.41354293652867,
+								  ...
+								 }
+		'''
+		if naicsLevel is None:
+			levels = list(set([len(k) for k in industry_composition]))
+			if len(levels)==1:
+				naicsLevel = levels[0]
+			else:
+				raise NameError('Unrecognized NAICS level')
+		if self.IO_data is None:
+			self.load_IO_data()
+		IO_data = self.IO_data[self.IO_data.columns]
+		IO_data['SELECTED_NAICS'] = IO_data['NAICS'].str[:naicsLevel]
+
+		worker_composition = IO_data.groupby(['SELECTED_NAICS','SELECTED_LEVEL']).sum()[['TOT_EMP']].reset_index()
+		worker_composition = worker_composition.set_index(['SELECTED_NAICS','SELECTED_LEVEL'])/worker_composition.groupby('SELECTED_NAICS').sum()[['TOT_EMP']]
+		worker_composition = worker_composition.reset_index()
+
+		industry_composition_df = pd.DataFrame(industry_composition.items(),columns=['SELECTED_NAICS','number'])
+		industry_composition_df['SELECTED_NAICS'] = ('000000'+industry_composition_df['SELECTED_NAICS'].astype(str)).str[-1*naicsLevel:]
+
+		worker_composition = pd.merge(worker_composition,industry_composition_df)
+		worker_composition['TOT_EMP'] = worker_composition['TOT_EMP']*worker_composition['number']
+		worker_composition = worker_composition.groupby('SELECTED_LEVEL').sum()[['TOT_EMP']].reset_index()
+		worker_composition = dict(worker_composition.values)
+		return worker_composition
+
 	def load_sks_data(self):
 		'''
 		Loads skills and knowledge datasets from ONET.
@@ -190,13 +275,13 @@ class InnoIndicator(Indicator):
 		if (not os.path.isfile(os.path.join(self.modelPath,'msa_skills.csv')))|(not os.path.isfile(os.path.join(self.modelPath,'msa_knowl.csv'))):
 			if (self.msa_skills is None)|(self.msa_knowl is None):
 				skillsRaw = pd.read_excel(onet_url+'Skills.xlsx')
-				skills = self.group_up(skillsRaw)
+				skills = self.group_up_skills(skillsRaw)
 				self.msa_skills     = self._aggregate_to_MSA(skills)
 				self.skill_names    = pd.concat([self.skill_names,skillsRaw[['Element ID','Element Name']].drop_duplicates()]).drop_duplicates()
 				self.combinedSkills = pd.concat([self.combinedSkills,skills[['SELECTED_LEVEL','Element ID','Data Value']]])
 
 				knowledgeRaw = pd.read_excel(onet_url+'Knowledge.xlsx')
-				knowledge = self.group_up(knowledgeRaw)
+				knowledge = self.group_up_skills(knowledgeRaw)
 				self.msa_knowl      = self._aggregate_to_MSA(knowledge)
 				self.skill_names    = pd.concat([self.skill_names,knowledgeRaw[['Element ID','Element Name']].drop_duplicates()]).drop_duplicates()
 				self.combinedSkills = pd.concat([self.combinedSkills,knowledge[['SELECTED_LEVEL','Element ID','Data Value']]])
@@ -229,7 +314,7 @@ class InnoIndicator(Indicator):
 		msa_skills.columns = msa_skills.columns.values.tolist()
 		return msa_skills
 
-	def group_up(self,skillsRaw,normalize=False):
+	def group_up_skills(self,skillsRaw,normalize=False):
 		'''
 		Skills data comes at the lowest level of the occupation classification (SOC Codes).
 		This function aggregates it up to the desired level defined in the occLevel parameter when initializing the object.

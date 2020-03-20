@@ -12,6 +12,8 @@ from toolbox import Indicator
 
 class InnoIndicator(Indicator):
 	def setup(self,occLevel=3,saveData=True,modelPath='tables/innovation_data',quietly=True):
+
+		self.name       = 'Innovation-Potential'
 		self.occLevel   = (occLevel if occLevel<=2 else occLevel+1) 
 		self.modelPath  = modelPath
 		self.coefs_path = os.path.join(modelPath,'lasso_coefs.csv')
@@ -40,7 +42,20 @@ class InnoIndicator(Indicator):
 		industry_composition = self.grid_to_industries(geogrid_data)
 		worker_composition   = self.industries_to_occupations(industry_composition)
 		skill_composition    = self.occupations_to_skills(worker_composition)
-		return self.SKSindicator(skill_composition)
+		skills = self.SKSindicator(skill_composition)
+		skills = self.normalize(skills)
+		out = [
+				{'name':'Skill-potential','value':skills,'category':'innovation'},
+				{'name':'Industry-potential','value':0.5,'category':'innovation'}
+			  ]
+		return out
+		
+
+	def normalize(self,value):
+		'''
+		Normalize indicator to keep between zero and one
+		'''
+		return value/4.
 
 	def grid_to_industries(self,geogrid_data):
 		'''
@@ -193,15 +208,15 @@ class InnoIndicator(Indicator):
 		'''
 		Loads employment by industry and occupation. 
 		'''
-		if not os.path.isfile(os.path.join(self.modelPath,'IO_dataRaw.csv')):
+		if not os.path.isfile(os.path.join(self.modelPath,'nat4d_M2018_dl.csv')):
 			url = 'https://www.bls.gov/oes/special.requests/oesm18in4.zip'
 			fname = 'oesm18in4/nat4d_M2018_dl.xlsx'
 			if not self.quietly:
 				print('Loading IO data')
 			IO_dataRaw = load_zipped_excel(url,fname)
-			IO_dataRaw.to_csv(os.path.join(self.modelPath,'IO_dataRaw.csv'),index=False)
+			IO_dataRaw.to_csv(os.path.join(self.modelPath,'nat4d_M2018_dl.csv'),index=False)
 		else:
-			IO_dataRaw = pd.read_csv(os.path.join(self.modelPath,'IO_dataRaw.csv'))
+			IO_dataRaw = pd.read_csv(os.path.join(self.modelPath,'nat4d_M2018_dl.csv'))
 		IO_data = IO_dataRaw[(IO_dataRaw['OCC_GROUP']=='detailed')&(IO_dataRaw['TOT_EMP']!='**')]
 		IO_data['TOT_EMP'] = IO_data['TOT_EMP'].astype(float)
 		IO_data['NAICS'] = ('00'+IO_data['NAICS'].astype(str)).str[-6:]

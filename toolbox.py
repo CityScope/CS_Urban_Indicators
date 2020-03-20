@@ -8,7 +8,7 @@ class Handler:
 	Class to handle the connection for indicators built based on data from the GEOGRID.
 
 	'''
-	def __init__(self, table_name, GEOGRID_varname = 'GEOGRID', quietly=True):
+	def __init__(self, table_name, GEOGRID_varname = 'GEOGRIDDATA', quietly=True):
 
 		self.host = 'https://cityio.media.mit.edu/'
 		self.table_name = table_name

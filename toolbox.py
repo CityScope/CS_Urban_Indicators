@@ -1,4 +1,5 @@
 import requests
+import webbrowser
 import json
 from warnings import warn
 from time import sleep
@@ -210,13 +211,14 @@ class Handler:
 		self._update_indicators(geogrid_data)
 		self.grid_hash_id = grid_hash_id
 
-	def listen(self):
+	def listen(self,showFront=True):
 		'''
 		Listen for changes in the table's geogrid and update all indicators accordingly. 
 		You can use the update_package method to see the object that will be posted to the table.
 		This method starts with an update before listening.
 		'''
 		if not self.quietly:
+			print('Table URL:',self.front_end_url)
 			print('Testing indicators')
 		self.test_indicators()
 
@@ -226,6 +228,8 @@ class Handler:
 			print(self.update_package())
 		self.perform_update()
 
+		if showFront:
+			webbrowser.open(self.front_end_url, new=2)
 		while True:
 			sleep(self.sleep_time)
 			grid_hash_id = self.get_hash()

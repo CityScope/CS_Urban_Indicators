@@ -7,6 +7,24 @@ class Handler:
 	'''
 	Class to handle the connection for indicators built based on data from the GEOGRID.
 
+	The simplest usage is:
+	> I = Indicator()
+	> H = Handler('table_name')
+	> H.add_indicator(I)
+	> H.listen()
+
+	Parameters
+	----------
+	table_name : str
+		Table name to lisen to.
+		https://cityio.media.mit.edu/api/table/table_name
+	GEOGRID_varname : str (default='GEOGRIDDATA')
+		Name of geogrid-data variable in the table API.
+		The object located at:
+		https://cityio.media.mit.edu/api/table/table_name/GEOGRID_varname
+		will be used as input for the return_indicator function in each indicator class.
+	quietly : boolean (default=True)
+		If True, it will show the status of every API call.
 	'''
 	def __init__(self, table_name, GEOGRID_varname = 'GEOGRIDDATA', quietly=True):
 
@@ -27,6 +45,9 @@ class Handler:
 		self.grid_hash_id = self.get_hash()
 
 	def check_table(self):
+		'''
+		Prints the front end url for the table.
+		'''
 		print(self.front_end_url)
 
 	def list_indicators(self):
@@ -38,7 +59,12 @@ class Handler:
 	def indicator(self,name):
 		'''
 		Returns the indicator with the given name.
-		See list_indicators()
+
+		Parameters
+		----------
+		name : str
+			Name of the indicator
+			See list_indicators()
 		'''
 		return self.indicators[name]
 
@@ -125,7 +151,7 @@ class Handler:
 		Retreives the GEOGRID hash from:
 		http://cityio.media.mit.edu/api/table/table_name/meta/hashes
 		'''
-		r = self.get_url(self.cityIO_get_url+'/meta/hashes')
+		r = self._get_url(self.cityIO_get_url+'/meta/hashes')
 		if r.status_code==200:
 			hashes = r.json()
 			try:
@@ -140,7 +166,7 @@ class Handler:
 		return grid_hash_id
 
 	def _get_grid_data(self):
-		r = self.get_url(self.cityIO_get_url+'/'+self.GEOGRID_varname)
+		r = self._get_url(self.cityIO_get_url+'/'+self.GEOGRID_varname)
 		if r.status_code==200:
 			geogrid_data = r.json()
 		else:
@@ -149,7 +175,7 @@ class Handler:
 			geogrid_data = None
 		return geogrid_data
 
-	def get_url(self,url,params=None):
+	def _get_url(self,url,params=None):
 		attempts = 0
 		success = False
 		while (attempts < self.nAttempts)&(not success):
@@ -184,14 +210,19 @@ class Handler:
 		self._update_indicators(geogrid_data)
 		self.grid_hash_id = grid_hash_id
 
-	def listen(self,start_with_update=True):
+	def listen(self):
+		'''
+		Listen for changes in the table's geogrid and update all indicators accordingly. 
+		You can use the update_package method to see the object that will be posted to the table.
+		This method starts with an update before listening.
+		'''
 		if not self.quietly:
 			print('Testing indicators')
 		self.test_indicators()
-		if start_with_update:
-			if not self.quietly:
-				print('Performing initial update')
-			self.perform_update()
+
+		if not self.quietly:
+			print('Performing initial update')
+		self.perform_update()
 
 		while True:
 			sleep(self.sleep_time)

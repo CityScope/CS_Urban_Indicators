@@ -2,7 +2,7 @@ import pandas as pd
 import json
 from toolbox import Handler, Indicator
 
-class Density_Proximity(Indicator):
+class Density_Diversity(Indicator):
 	'''
 	Example of the same indicators implemented in indicator_tools.py
 	'''
@@ -66,7 +66,7 @@ class Density_Proximity(Indicator):
 		return indicators
 
 def main():
-	indicators = Density_Proximity(name="indicators")
+	indicators = Density_Diversity(name="indicators")
 
 	H = Handler('corktown', quietly=False)
 	H.add_indicator(indicators)

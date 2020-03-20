@@ -327,7 +327,9 @@ class ProxIndicator(Indicator):
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Residential', 'Mix-use']])/self.scalers[poi]
-            result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})                
+            result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})  
+        for r in result:
+            r['value']=min(1, r['value'])              
 #        grid_geojson=self.create_access_geojson(sample_nodes_acc)
         return result
     

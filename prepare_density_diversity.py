@@ -204,15 +204,6 @@ amenity_scores.to_csv(AMENITY_SCORES_PATH, index=False)
 host='https://cityio.media.mit.edu/'
 cityIO_output_path=host+'api/table/update/'+table_name
        
-#r = requests.post(cityIO_output_path+'/density_indicators', data = json.dumps(density_indicators))
-#print(r)
-#r = requests.post(cityIO_output_path+'/diversity_indicators', data = json.dumps(diversity_indicators))
-#print(r)
-#r = requests.post(cityIO_output_path+'/proximity_indicators', data = json.dumps(proximity_indicators))
-#print(r)
-#r = requests.post(cityIO_output_path+'/mobility_indicators', data = json.dumps(mobility_indicators))
-#print(r)
-
 
 indicators=[
             {'name': 'Residential Density','category': 'Density', 'value': residential_density_score},
@@ -234,14 +225,12 @@ indicators=[
 # Random values
 # =============================================================================
 import random
-for prox_ind in table_configs['scalers']:
-    indicators.append({'name': 'Proximity to {}'.format(prox_ind), 
-                      'category': 'Proximity', 'value': random.random()})
-for energy_ind in ['Mobility']:
-    indicators.append({'name': '{} Energy Efficiency'.format(energy_ind), 
-                      'category': 'Energy', 'value': random.random()})
-    indicators.append({'name': '{} Embodied Energy'.format(energy_ind), 
-                      'category': 'Energy', 'value': random.random()})
+
+#for energy_ind in ['Mobility']:
+#    indicators.append({'name': '{} Energy Efficiency'.format(energy_ind), 
+#                      'category': 'Energy', 'value': random.random()})
+#    indicators.append({'name': '{} Embodied Energy'.format(energy_ind), 
+#                      'category': 'Energy', 'value': random.random()})
 #r = requests.post(cityIO_output_path+'/indicators', data = json.dumps(indicators))
 #print(r)
 

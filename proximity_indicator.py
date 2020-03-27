@@ -15,6 +15,7 @@ import numpy as np
 from scipy import spatial
 import pyproj
 import random
+import requests
 from toolbox import Handler, Indicator
 
 
@@ -34,7 +35,10 @@ class ProxIndicator(Indicator):
         self.pois_per_lu={
                   'Residential': {'housing': 200},
                   'Office Tower': {'employment': 200},
+                  'Office': {'employment': 100},
                   'Plaza': {'parks': 1},
+                  'Institutional': {'education': 1},
+                  'Retail': {'groceries': 1},
                   'Park': {'parks': 1},
                   'Mix-use': {'food': 1, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
                   'Service': {'parking': 100}}
@@ -241,7 +245,7 @@ class ProxIndicator(Indicator):
     def save_model_params(self):       
         output={'sample_nodes_acc_base': self.sample_nodes_acc_base,
                 'grid_nodes_acc_base': self.grid_nodes_acc_base,
-                'pois_per_lu': self.pois_per_lu,
+#                'pois_per_lu': self.pois_per_lu,
                 'all_poi_types': self.all_poi_types,
                 'from_employ_pois': self.from_employ_pois,
                 'from_housing_pois': self.from_housing_pois,
@@ -257,7 +261,7 @@ class ProxIndicator(Indicator):
             params=json.load(open(self.params_path))
             self.sample_nodes_acc_base=params['sample_nodes_acc_base']
             self.grid_nodes_acc_base=params['grid_nodes_acc_base']
-            self.pois_per_lu=params['pois_per_lu']
+#            self.pois_per_lu=params['pois_per_lu']
             self.all_poi_types=params['all_poi_types']
             self.from_employ_pois=params['from_employ_pois']
             self.from_housing_pois=params['from_housing_pois']
@@ -282,7 +286,7 @@ class ProxIndicator(Indicator):
         }    
         for i in range(len(self.sample_lons)):
             geom={"type": "Point","coordinates": [self.sample_lons[i],self.sample_lats[i]]}
-            props={t: np.power(grids[i][t]/self.scalers[t], 1) for t in self.all_poi_types}
+            props={t: np.power(grids[str(i)][t]/self.scalers[t], 1) for t in self.all_poi_types}
             feat={
              "type": "Feature",
              "properties": props,
@@ -321,16 +325,20 @@ class ProxIndicator(Indicator):
         for poi in self.from_employ_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use']])/self.scalers[poi]
+                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'Office', 'Light Industrial']])/self.scalers[poi]
             result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})
         for poi in self.from_housing_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Residential', 'Mix-use']])/self.scalers[poi]
-            result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})  
+            result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value}) 
+        print(result)
         for r in result:
             r['value']=min(1, r['value'])              
 #        grid_geojson=self.create_access_geojson(sample_nodes_acc)
+#        access_post_url='https://cityio.media.mit.edu/api/table/update/{}/access'.format(self.table_name)
+#        r = requests.post(access_post_url, data = json.dumps(grid_geojson))
+#        print('Geojson: {}'.format(r))
         return result
     
         

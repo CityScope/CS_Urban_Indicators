@@ -2,7 +2,9 @@
 
 ## Custom GEOGRID indicator (tldr)
 
-Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The function *setup* acts like an *__init__* and can take any argument and is run when the object is instantiated. The function *load_module* is also run when the indicator in initialized, but it cannot take any arguments. Any inputs needed for *load_module* should be defined as properties in *setup*. The function *return_indicator* is the only required one and should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. The following example implements a diversity-of-land-use indicator:
+Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The function *setup* acts like an *__init__* and can take any argument and is run when the object is instantiated. The function *load_module* is also run when the indicator in initialized, but it cannot take any arguments. Any inputs needed for *load_module* should be defined as properties in *setup*. The function *return_indicator* is the only required one and should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. Sometimes, the indicator requires geographic information from the table to calculate it. To get geographic information from the table, set the property *requires_geometry* to True (see Noise heatmap as an example). 
+
+The following example implements a diversity-of-land-use indicator:
 ```
 from toolbox import Indicator
 from toolbox import Handler
@@ -38,7 +40,44 @@ H.add_indicator(div)
 H.listen()
 ```
 
-## Custom GEOGRID indicator tutorial
+## Custom accessibility indicator
+
+The same class can be used to define a heatmap or accessiblity indicator, as opposed to a numeric indicator.
+First, set the class property *category* equal to 'heatmap' or to 'access'. This will flag the indicator as a heatmap and will tell the Handler class what to do with it.
+Second, make sure that the *return_indicator* function returns a list of features or a geojson. 
+The example below shows an indicator that returns noise for every point in the center of a grid cell. Because this indicator needs the coordinates of table to return the geojson, it sets the property *requires_geometry* to True.
+
+```
+class Noise(Indicator):
+    '''
+    Example of Noise heatmap indicator for points centered in each grid cell.
+
+    Note that this class requires the geometry of the table as input, which is why it sets:
+    requires_geometry = True
+    in the setup.
+
+    '''
+    def setup(self):
+        self.category = 'heatmap'
+        self.requires_geometry = True
+
+    def load_module(self):
+        pass
+
+    def return_indicator(self, geogrid_data):
+        features = []
+        for cell in geogrid_data:
+            feature = {}
+            lat,lon = zip(*cell['geometry']['coordinates'][0])
+            lat,lon = mean(lat),mean(lon)
+            feature['geometry'] = {'coordinates': [lat,lon],'type': 'Point'}
+            feature['properties'] = {self.name:random()}
+            features.append(feature)
+        out = {'type':'FeatureCollection','features':features}
+        return out
+```
+
+## GEOGRID indicator tutorial - Diversity of land-use indicator
 
 As an example, we'll build a diversity of land use indicator for the corktown table. The process is the same for any table, provided that it has a GEOGRID variable. Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The function *setup* acts like an *__init__* and can take any argument and is run when the object is instantiated. The function *load_module* is also run when the indicator in initialized, but it cannot take any arguments. Any inputs needed for *load_module* should be defined as properties in *setup*. The function *return_indicator* is the only required one and should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. 
 

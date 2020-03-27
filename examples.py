@@ -41,6 +41,39 @@ class Diversity(Indicator):
 
 		return entropy
 
+
+from numpy import mean
+from numpy.random import random
+class Noise(Indicator):
+    '''
+    Example of Noise heatmap indicator for points centered in each grid cell.
+    The main difference between a heatmap and a numeric indicator is that category is set to either 'heatmap' or 'access'.
+
+    Note that this class requires the geometry of the table as input, which is why it sets:
+    requires_geometry = True
+    in the setup.
+
+    '''
+    def setup(self):
+        self.category = 'heatmap'
+        self.name = 'noise'
+        self.requires_geometry = True
+
+    def load_module(self):
+        pass
+
+    def return_indicator(self, geogrid_data):
+        features = []
+        for cell in geogrid_data:
+            feature = {}
+            lat,lon = zip(*cell['geometry']['coordinates'][0])
+            lat,lon = mean(lat),mean(lon)
+            feature['geometry'] = {'coordinates': [lat,lon],'type': 'Point'}
+            feature['properties'] = {self.name:random()}
+            features.append(feature)
+        out = {'type':'FeatureCollection','features':features}
+        return out
+
 def main():
 	seashell = ShellIndicator(name='seashell')
 	div = Diversity(name="land_use_diversity")

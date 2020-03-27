@@ -51,6 +51,17 @@ class Handler:
 		'''
 		print(self.front_end_url)
 
+	def see_current(self):
+		'''
+		Returns the current values of the indicators posted for the table.
+		'''
+		r = self._get_url(self.cityIO_get_url+'/indicators')
+		if r.status_code==200:
+			return r.json()
+		else:
+			warn('Cant access cityIO hashes')
+			return {}
+
 	def list_indicators(self):
 		'''
 		Returns list of all indicator names.
@@ -89,6 +100,8 @@ class Handler:
 		self.indicators[indicatorName] = I
 		if test:
 			geogrid_data = self._get_grid_data()
+			if I.category not in set(['numeric','heatmap','access']):
+				raise NameError('Indicator category should either be numeric, heatmap, or access. Current type: '+str(I.category))
 			try:
 				self._new_value(geogrid_data,indicatorName)
 			except:
@@ -118,12 +131,20 @@ class Handler:
 				new_value['name'] = indicator_name
 			if ('category' not in new_value.keys())&(I.category is not None):
 				new_value['category'] = I.category
+			if ('viz_type' not in new_value.keys())&(I.viz_type is not None):
+				new_value['viz_type'] = I.viz_type
 			return [new_value]
 
-	def update_package(self,geogrid_data=None):
+	def update_package(self,geogrid_data=None,append=False):
 		'''
 		Returns the package that will be posted in CityIO.
 
+		Parameters
+		----------
+		geogrid_data : dict (optional)
+			Result of self.geogrid_data(). If not provided, it will be retrieved. 
+		append : boolean (dafault=False)
+			If True, it will append the new indicators to whatever is already there.
 		'''
 		if geogrid_data is None:
 			geogrid_data = self._get_grid_data()
@@ -133,13 +154,22 @@ class Handler:
 				new_values+= self._new_value(geogrid_data,indicator_name)
 			except:
 				warn('Indicator not working:'+str(indicator_name))
+		if append:
+			current = self.see_current()
+			current = [indicator for indicator in current if indicator['name'] not in self.indicators.keys()]
+			new_values += current
 		return new_values
 
-	def _update_indicators(self,geogrid_data):
+	def _update_indicators(self,geogrid_data,append=False):
 		'''
 		Updates the indicators according to the given geogrid_data.
+
+		Parameters
+		---------
+		append : boolean (dafault=False)
+			If True, it will append the new indicators to whatever is already there.
 		'''
-		new_values = self.update_package(geogrid_data=geogrid_data)
+		new_values = self.update_package(geogrid_data=geogrid_data,append=append)
 		r = requests.post(self.cityIO_post_url+'/indicators', data = json.dumps(new_values))
 
 	def test_indicators(self):
@@ -198,9 +228,16 @@ class Handler:
 		'''
 		return self._get_grid_data()
 
-	def perform_update(self,grid_hash_id=None):
+	def perform_update(self,grid_hash_id=None,append=True):
 		'''
 		Performs single table update.
+
+		Parameters
+		----------
+		grid_hash_id : str (optional)
+			Current grid hash id. If not provided, it will retrieve it.
+		append : boolean (dafault=True)
+			If True, it will append the new indicators to whatever is already there.
 		'''
 		if grid_hash_id is None: 
 			grid_hash_id = self.get_hash()	
@@ -208,14 +245,21 @@ class Handler:
 		if not self.quietly:
 			print('Updating table with hash:',grid_hash_id)
 		
-		self._update_indicators(geogrid_data)
+		self._update_indicators(geogrid_data,append=append)
 		self.grid_hash_id = grid_hash_id
 
-	def listen(self,showFront=True):
+	def listen(self,showFront=True,append=False):
 		'''
 		Listen for changes in the table's geogrid and update all indicators accordingly. 
 		You can use the update_package method to see the object that will be posted to the table.
 		This method starts with an update before listening.
+
+		Parameters
+		----------
+		showFront : boolean (default=True)
+			If True, it will open the front-end URL in a webbrowser at start.
+		append : boolean (dafault=False)
+			If True, it will append the new indicators to whatever is already there.
 		'''
 		if not self.quietly:
 			print('Table URL:',self.front_end_url)
@@ -226,7 +270,7 @@ class Handler:
 			print('Performing initial update')
 			print('Update package example:')
 			print(self.update_package())
-		self.perform_update()
+		self.perform_update(append=append)
 
 		if showFront:
 			webbrowser.open(self.front_end_url, new=2)
@@ -234,12 +278,13 @@ class Handler:
 			sleep(self.sleep_time)
 			grid_hash_id = self.get_hash()
 			if grid_hash_id!=self.grid_hash_id:
-				self.perform_update(grid_hash_id=grid_hash_id)
+				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
 	def __init__(self,*args,name=None,category=None,**kwargs):
 		self.name = name
-		self.category = category
+		self.category = 'numeric'
+		self.viz_type = 'default'
 
 		self.setup(*args,**kwargs)
 		self.load_module()

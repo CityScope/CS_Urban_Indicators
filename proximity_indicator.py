@@ -322,26 +322,26 @@ class ProxIndicator(Indicator):
                             sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
                         for n in grid_nodes_to_update:
                             grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
-        value_indicators=[]
+        self.value_indicators=[]
         # TODO: should use baseline land uses as well as added ones
         for poi in self.from_employ_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'Office', 'Light Industrial']])/self.scalers[poi]
-            value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})
         for poi in self.from_housing_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Residential', 'Mix-use']])/self.scalers[poi]
-            value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value}) 
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value}) 
 #        print(result)
-        for v in value_indicators:
+        for v in self.value_indicators:
             v['value']=min(1, v['value'])
-        if self.category == 'heatmap':            
+        if self.category in ['heatmap', 'access']:            
             grid_geojson=self.create_access_geojson(sample_nodes_acc)
             return grid_geojson
         else:
-            return value_indicators
+            return self.value_indicators
     
 
 def main():

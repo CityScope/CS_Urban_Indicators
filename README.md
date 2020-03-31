@@ -1,5 +1,81 @@
 # README
 
+## Accessibility indicator format
+
+The Handler class combines the results of all heatmaps indicator into one consolidated cityio-geojson with the following format:
+```
+{
+	'type': 'FeatureCollection',
+	'properties': ['car','truck','bike','altitude'],
+	'features' : [
+		{
+			'geometry':[...],
+			'properties':[1,2,1,NULL]
+		},
+		{
+			'geometry':[...],
+			'properties':[2,1,1,NULL]
+		},
+		{
+			'geometry':[...],
+			'properties':[2,1,1,NULL]
+		},
+		{
+			'geometry':[...],
+			'properties':[2,1,1,NULL]
+		},
+		{
+			'geometry':[...],
+			'properties':[NULL,NULL,NULL,1]
+		},
+		{
+			'geometry':[...],
+			'properties':[NULL,NULL,NULL,2]
+		}
+	]
+}
+```
+
+This example was the result of combining the two geojsons:
+```
+{
+	'type': 'FeatureCollection',
+	'features' : [
+		{
+			'geometry':[...],
+			'properties':{'car':1, 'truck':2, 'bike':1}
+		},
+		{
+			'geometry':[...],
+			'properties':{'car':2, 'truck':1, 'bike':1}
+		},
+		{
+			'geometry':[...],
+			'properties':{'car':2, 'truck':1, 'bike':1}
+		},
+		{
+			'geometry':[...],
+			'properties':{'car':2, 'truck':1, 'bike':1}
+		}
+	]
+}
+
+{
+	'type': 'FeatureCollection',
+	'features' : [
+		{
+			'geometry':[...],
+			'properties':{'altitude':1}
+		},
+		{
+			'geometry':[...],
+			'properties':{'altitude':2}
+		}
+	]
+}
+```
+
+
 ## Custom GEOGRID indicator (tldr)
 
 Indicators are built as subclasses of the **Indicator** class, with three functions that need to be defined: *setup*, *load_module*, and *return_indicator*. The function *setup* acts like an *__init__* and can take any argument and is run when the object is instantiated. The function *load_module* is also run when the indicator in initialized, but it cannot take any arguments. Any inputs needed for *load_module* should be defined as properties in *setup*. The function *return_indicator* is the only required one and should take in a 'geogrid_data' object and return the value of the indicator either as a number, a dictionary, or a list of dictionaries/numbers. Sometimes, the indicator requires geographic information from the table to calculate it. To get geographic information from the table, set the property *requires_geometry* to True (see Noise heatmap as an example). 

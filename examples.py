@@ -54,9 +54,9 @@ class Noise(Indicator):
     in the setup.
 
     '''
-    def setup(self):
+    def setup(self,name=None):
         self.category = 'heatmap'
-        self.name = 'noise'
+        self.name = ('noise' if name is None else name)
         self.requires_geometry = True
 
     def load_module(self):

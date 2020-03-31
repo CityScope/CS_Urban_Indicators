@@ -20,8 +20,9 @@ from toolbox import Handler, Indicator
 
 
 class ProxIndicator(Indicator):
-    def setup(self):
-        self.table_name='corktown'
+    def setup(self,*args,**kwargs):
+        self.category = kwargs['category_in']
+        self.table_name= kwargs['table_name']
         self.osm_config_file_path='./osm_amenities.json'
         self.table_config_file_path='./tables/{}/table_configs.json'.format(self.table_name)
         self.ua_nodes_path='./tables/{}/geometry/access_network_nodes.csv'.format(self.table_name)
@@ -282,11 +283,12 @@ class ProxIndicator(Indicator):
            
         output_geojson={
          "type": "FeatureCollection",
+         "properties": {"attributes": self.all_poi_types},
          "features": []
         }    
         for i in range(len(self.sample_lons)):
             geom={"type": "Point","coordinates": [self.sample_lons[i],self.sample_lats[i]]}
-            props={t: np.power(grids[str(i)][t]/self.scalers[t], 1) for t in self.all_poi_types}
+            props=[np.power(grids[str(i)][t]/self.scalers[t], 1) for t in self.all_poi_types]
             feat={
              "type": "Feature",
              "properties": props,
@@ -320,31 +322,30 @@ class ProxIndicator(Indicator):
                             sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
                         for n in grid_nodes_to_update:
                             grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
-        result=[]
+        value_indicators=[]
         # TODO: should use baseline land uses as well as added ones
         for poi in self.from_employ_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'Office', 'Light Industrial']])/self.scalers[poi]
-            result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})
+            value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})
         for poi in self.from_housing_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Residential', 'Mix-use']])/self.scalers[poi]
-            result.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value}) 
-        print(result)
-        for r in result:
-            r['value']=min(1, r['value'])              
-#        grid_geojson=self.create_access_geojson(sample_nodes_acc)
-#        access_post_url='https://cityio.media.mit.edu/api/table/update/{}/access'.format(self.table_name)
-#        r = requests.post(access_post_url, data = json.dumps(grid_geojson))
-#        print('Geojson: {}'.format(r))
-        return result
+            value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value}) 
+#        print(result)
+        for v in value_indicators:
+            v['value']=min(1, v['value'])
+        if self.category == 'heatmap':            
+            grid_geojson=self.create_access_geojson(sample_nodes_acc)
+            return grid_geojson
+        else:
+            return value_indicators
     
-        
-        
+
 def main():
-    P= ProxIndicator(name='proximity')
+    P= ProxIndicator(name='proximity',  category_in='numeric', table_name='corktown')
     H = Handler('corktown', quietly=False)
     H.add_indicator(P)
     

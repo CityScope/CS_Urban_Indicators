@@ -62,7 +62,7 @@ class Handler:
 		self.previous_indicators = None
 		self.previous_access = None
 
-		self.none_character = 'NULL'
+		self.none_character = 0
 
 	def check_table(self):
 		'''

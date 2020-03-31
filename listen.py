@@ -7,7 +7,7 @@ from random_indicator import RandomIndicator
 def main():
 	density_diversity = Density_Diversity()
 	placeholder=RandomIndicator()
-#	innovation        = InnoIndicator()
+	innovation        = InnoIndicator()
 	proximity         = ProxIndicator()  
 
 	H = Handler('corktown', quietly=False)

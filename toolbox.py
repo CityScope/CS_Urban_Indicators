@@ -4,6 +4,14 @@ import json
 import Geohash
 from warnings import warn
 from time import sleep
+from collections import defaultdict
+
+def is_number(s):
+	try:
+		float(s)
+		return True
+	except:
+		return False
 
 class Handler:
 	'''
@@ -45,6 +53,7 @@ class Handler:
 		
 		self.GEOGRID_varname = GEOGRID_varname
 		self.GEOGRIDDATA_varname = GEOGRIDDATA_varname
+		self.GEOGRID = None
 
 		self.indicators = {}
 		self.grid_hash_id = None
@@ -52,6 +61,8 @@ class Handler:
 
 		self.previous_indicators = None
 		self.previous_access = None
+
+		self.none_character = 0
 
 	def check_table(self):
 		'''
@@ -127,6 +138,74 @@ class Handler:
 			except:
 				warn('Indicator not working: '+indicatorName)
 
+	def return_indicator(self,indicator_name):
+		'''
+		Returns the value returned by return_indicator function of the selected indicator.
+
+		Parameters
+		----------
+		indicator_name : str
+			Name of the indicator. See:
+			> self.list_indicators()
+		'''
+		geogrid_data = self._get_grid_data()
+		I = self.indicators[indicator_name]
+		return I.return_indicator(geogrid_data)
+
+	def _format_geojson(self,new_value):
+		'''
+		Formats the result of the return_indicator function into a valid geojson (not a cityIO geojson)
+
+		'''
+		if isinstance(new_value,dict) and ('properties' in new_value.keys()) and ('features' in new_value.keys()):
+			if (len(new_value['properties'])==1) and all([((not isinstance(f['properties'],dict))) and (is_number(f['properties'])) for f in new_value['features']]):
+				# print('Type1B')
+				for f in new_value['features']:
+					f['properties'] = [f['properties']]
+			else:
+				# print('Type1')
+				pass
+			if all([(not isinstance(f['properties'],dict)) for f in new_value['features']]):
+				for f in new_value['features']:
+					feature_properties = f['properties']
+					if len(feature_properties)<len(new_value['properties']):
+						feature_properties+=[self.none_character]*(len(new_value['properties'])-len(feature_properties))
+					elif len(feature_properties)>len(new_value['properties']):
+						feature_properties = feature_properties[:new_value['properties']]
+					f['properties'] = dict(zip(new_value['properties'],feature_properties))
+			new_value.pop('properties')
+
+		elif isinstance(new_value,dict) and ('features' in new_value.keys()):
+			if all([(not isinstance(f['properties'],dict)) and isinstance(f['properties'],list) and (len(f['properties'])==1) for f in new_value['features']]):
+				# print('Type2B')
+				for f in new_value['features']:
+					f['properties'] = {indicator_name:f['properties'][0]}
+			elif all([(not isinstance(f['properties'],dict)) and is_number(f['properties']) for f in new_value['features']]):
+				# print('Type2C')
+				for f in new_value['features']:
+					f['properties'] = {indicator_name:f['properties']}
+			else:
+				# print('Type2')
+				pass
+
+		elif isinstance(new_value,list) and all([(isinstance(f,dict) and 'geometry' in f.keys()) for f in new_value]):
+			if all([is_number(f['properties']) for f in new_value]):
+				# print('Type3B')
+				for f in new_value:
+					f['properties'] = {indicator_name:f['properties']}
+			elif not all([isinstance(f['properties'],dict) for f in new_value]):
+				raise NameError('Indicator returned invalid geojson or feature list:'+indicator_name)
+			else:
+				# print('Type3')
+				pass
+			new_value = {'features':new_value,'type':'FeatureCollection'}
+		else:
+			raise NameError('Indicator returned invalid geojson or feature list:'+indicator_name)
+
+		for feature in new_value['features']:
+			feature['properties'] = defaultdict(lambda: self.none_character,feature['properties'])
+		return new_value
+
 	def _new_value(self,geogrid_data,indicator_name):
 		'''
 		Formats the result of the indicator's return_indicator function.
@@ -165,15 +244,8 @@ class Handler:
 
 		if I.category in ['access','heatmap']:
 			new_value = I.return_indicator(geogrid_data)
-			if isinstance(new_value,list)|isinstance(new_value,tuple):
-				if any(['geometry' not in v.keys() for v in new_value]):
-					print('List returned by return_indicator function must be a valid list of features or a geojson: '+indicator_name)
-				return new_value
-			else:
-				if ('features' in new_value.keys()):
-					return new_value['features']
-				else:
-					raise NameError('Indicator returned invalid geojson:'+indicator_name)
+			new_value = self._format_geojson(new_value)
+			return [new_value]
 		elif I.category in ['numeric','indicators']:
 			new_value = I.return_indicator(geogrid_data)
 			if isinstance(new_value,list)|isinstance(new_value,tuple):
@@ -201,6 +273,34 @@ class Handler:
 					new_value['viz_type'] = I.viz_type
 				return [new_value]
 
+	def _combine_heatmap_values(self,new_values_heatmap):
+		'''
+		Combines a list of heatmap features (formatted as geojsons) into one cityIO GeoJson
+		'''
+
+		all_properties = set([])
+		combined_features = {}
+		for new_value in new_values_heatmap:
+			for f in new_value['features']:
+				if f['geometry']['type']=='Point':
+					all_properties = all_properties|set(f['properties'].keys())
+					lat,lon = f['geometry']['coordinates']
+					hashed = Geohash.encode(lat,lon)
+					
+					if hashed in combined_features.keys():
+						combined_features[hashed]['properties'] = {**combined_features[hashed]['properties'], **f['properties']} 
+						combined_features[hashed]['properties'] = defaultdict(lambda: self.none_character,combined_features[hashed]['properties'])
+					else:
+						combined_features[Geohash.encode(lat,lon)] = f
+				else:
+					raise NameError('Only Points supported at this point')
+		all_properties = list(all_properties)
+		combined_features = list(combined_features.values())
+		for f in combined_features:
+			f['properties'] = [f['properties'][p] for p in all_properties]
+
+		return {'type':'FeatureCollection','properties':all_properties,'features':combined_features}
+
 	def update_package(self,geogrid_data=None,append=False):
 		'''
 		Returns the package that will be posted in CityIO.
@@ -219,54 +319,33 @@ class Handler:
 		'''
 		if geogrid_data is None:
 			geogrid_data = self._get_grid_data()
-		new_values = []
-		new_features = []
+		new_values_numeric = []
+		new_values_heatmap = []
 
 		for indicator_name in self.indicators:
 			try:
 				if self.indicators[indicator_name].category in ['access','heatmap']:
-					new_features += self._new_value(geogrid_data,indicator_name)
+					new_values_heatmap += self._new_value(geogrid_data,indicator_name)
 				else:
-					new_values += self._new_value(geogrid_data,indicator_name)
+					new_values_numeric += self._new_value(geogrid_data,indicator_name)
 			except:
 				warn('Indicator not working:'+str(indicator_name))
 		
 		if append:
-			if len(new_values)!=0:
+			if len(new_values_numeric)!=0:
 				current = self.see_current()
 				self.previous_indicators = current
 				current = [indicator for indicator in current if indicator['name'] not in self.indicators.keys()]
-				new_values += current
+				new_values_numeric += current
 
-			if len(new_features)!=0:
+			if len(new_values_heatmap)!=0:
 				current_access = self.see_current(category='access')
 				self.previous_access = current_access
-				current_features = current_access['features']
+				current_access = self._format_geojson(current_access)
+				new_values_heatmap = [current_access]+new_values_heatmap
 
-				combined_features = {'non-points':[],'points':{}}
-				for f in current_features:
-					if f['geometry']['type']=='Point':
-						lat,lon = f['geometry']['coordinates']
-						combined_features['points'][Geohash.encode(lat,lon)] = f
-					else:
-						warn('WARNING: There are some features that will be overwritten. Function only preserves points.')
-
-				for f in new_features:
-					if f['geometry']['type']=='Point':
-						lat,lon = f['geometry']['coordinates']
-						hashed = Geohash.encode(lat,lon)
-						if hashed in combined_features['points'].keys():
-							new_properties = f['properties']
-							for k in new_properties:
-								combined_features['points'][hashed]['properties'][k] = new_properties[k]
-						else:
-							combined_features['points'][hashed] = f
-					else:
-						combined_features['non-points'].append(f)
-
-				new_features = combined_features['non-points']+list(combined_features['points'].values())
-
-		return {'numeric':new_values,'heatmap':{'features':new_features,'type':'FeatureCollection'}}
+		new_values_heatmap = self._combine_heatmap_values(new_values_heatmap)
+		return {'numeric':new_values_numeric,'heatmap':new_values_heatmap}
 		
 	def test_indicators(self):
 		geogrid_data = self._get_grid_data()
@@ -302,13 +381,15 @@ class Handler:
 			geogrid_data = None
 	
 		if include_geometries|any([I.requires_geometry for I in self.indicators.values()]):
-			r = self._get_url(self.cityIO_get_url+'/'+self.GEOGRID_varname)
-			if r.status_code==200:
-				geogrid = r.json()
-				for i in range(len(geogrid_data)):
-					geogrid_data[i]['geometry'] = geogrid['features'][i]['geometry']
-			else:
-				warn('WARNING: Cant access GEOGRID data')
+			if self.GEOGRID is None:
+				r = self._get_url(self.cityIO_get_url+'/'+self.GEOGRID_varname)
+				if r.status_code==200:
+					geogrid = r.json()
+					self.GEOGRID = geogrid
+				else:
+					warn('WARNING: Cant access GEOGRID data')
+			for i in range(len(geogrid_data)):
+				geogrid_data[i]['geometry'] = self.GEOGRID['features'][i]['geometry']
 		return geogrid_data
 
 	def _get_url(self,url,params=None):
@@ -409,8 +490,8 @@ class Handler:
 				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
-	def __init__(self,*args,name=None,requires_geometry=False,category='numeric',viz_type='default',**kwargs):
-		self.name = name
+	def __init__(self,*args,requires_geometry=False,category='numeric',viz_type='default',**kwargs):
+		self.name = None
 		self.category = category
 		self.viz_type = viz_type
 		self.requires_geometry = requires_geometry

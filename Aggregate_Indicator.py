@@ -13,6 +13,7 @@ from random_indicator import RandomIndicator
 
 class AggregateIndicator(Indicator):
     def setup(self,*args,**kwargs):
+        self.name=kwargs['name']
         self.indicators_to_aggregate=kwargs['indicators_to_aggregate']
         self.agg_fun=kwargs["agg_fun"]
     

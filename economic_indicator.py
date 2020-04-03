@@ -13,6 +13,7 @@ from innovation_indicator import InnoIndicator
 class EconomicIndicator(Indicator):
     def setup(self,*args,**kwargs):
         self.innovation_indicator=kwargs['innovation_indicator']
+        self.name=kwargs['name']
         salary_data=pd.read_excel('./tables/innovation_data/national_M2019_dl.xlsx')
 #        salary_data=salary_data.set_index('occ_code')
         self.code_to_salary={salary_data.iloc[i]['occ_code']: salary_data.iloc[i]['a_mean']
@@ -34,7 +35,7 @@ class EconomicIndicator(Indicator):
             denom+=weight
 #            print('{} : {}'.format(padded_occ_code,self.code_to_salary[padded_occ_code]))
         avg_salary=total_salary/denom
-        return min(1, avg_salary/100000)
+        return [{'value': min(1, avg_salary/100000), 'name': self.name}]
 
 def main():
     I = InnoIndicator()

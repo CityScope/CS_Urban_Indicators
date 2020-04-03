@@ -1,20 +1,33 @@
 from toolbox import Handler
-from density_diversity_indicator import Density_Diversity
 from proximity_indicator import ProxIndicator
 from innovation_indicator import InnoIndicator
-from random_indicator import RandomIndicator
+from mobility_indicator import MobilityIndicator
+from aggregate_indicator import AggregateIndicator
+from economic_indicator import EconomicIndicator
+
+from statistics import mean
 
 def main():
-	density_diversity = Density_Diversity()
-	placeholder=RandomIndicator()
-	innovation        = InnoIndicator()
-	proximity         = ProxIndicator()  
+    I = InnoIndicator()    
+    P = ProxIndicator(name='proximity',  category_in='heatmap', table_name='corktown')
+    M = MobilityIndicator(name='mobility',  table_name='corktown')
+    
+#    2nd order indicators
+    E = EconomicIndicator(innovation_indicator=I, name='Economic')
+    
+    aggregation=[{'indicator': P, 'names': ['Access to education', 'Access to parks']}]
+    S=AggregateIndicator(name='Social Well-Being',
+                              indicators_to_aggregate=aggregation, 
+                              agg_fun=mean)
+    
+    H = Handler('corktown', quietly=False)
+    H.add_indicator(I)
+    H.add_indicator(P)
+    H.add_indicator(M)
+    H.add_indicator(E)
+    H.add_indicator(S)  
 
-	H = Handler('corktown', quietly=False)
-#	H.add_indicator(density_diversity)
-#	H.add_indicator(innovation)
-	H.add_indicator(placeholder)
-	H.listen()
+    H.listen()
 
 if __name__ == '__main__':
 	main()

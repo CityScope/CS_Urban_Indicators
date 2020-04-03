@@ -283,7 +283,7 @@ class ProxIndicator(Indicator):
            
         output_geojson={
          "type": "FeatureCollection",
-         "properties": {"attributes": self.all_poi_types},
+         "properties": self.all_poi_types,
          "features": []
         }    
         for i in range(len(self.sample_lons)):

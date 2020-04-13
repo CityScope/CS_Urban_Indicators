@@ -1,5 +1,39 @@
 # README
 
+## Dockerization
+
+### Deploy modules
+
+Dockerization allows us to deploy the modules in any server with docker. The deployment created a docker image with all the requirements specified in `requirements.txt` and the contents of the local `CS_Urban_Indicators` directory, and runs the listen.py script. 
+
+The following commands build the image and then run a container using the image:
+```
+> docker build -t python-urban-indicators .
+> docker run -d python-urban-indicators
+```
+
+Note that the container is running even though nothing shows up. To see its status, attache to the container:
+```
+> docker container attach python-urban-indicators
+```
+
+### Use a container for testing
+
+Building the image takes a while, which is why we created a light-weight image that can be used for testing during development (see [urban-indicator-dev](https://github.com/crisjf/urban-indicator-dev)).
+
+First, pull the image
+```
+> docker pull crisjf/urban-indicators-dev
+```
+
+Then, run a container using the image. It will automatically start a bash.
+The following command also makes sure that the current directory is mounted to the container (run from the directory of the repo):
+```
+> docker run -it -v "$(pwd)":/home/CS_Urban_Indicators crisjf/urban-indicators-dev
+```
+
+
+
 ## Accessibility indicator format
 
 The Handler class combines the results of all heatmaps indicator into one consolidated cityio-geojson with the following format:

@@ -252,12 +252,12 @@ def load_zipped_excel(url,fname):
 	zipdata = BytesIO()
 	zipdata.write(r.content)
 	zf = zipfile.ZipFile(zipdata)
-	try:
-		empRaw = pd.read_excel(zf.open(fname))
-		return empRaw
-	except:
+	if fname not in zf.namelist():
 		print(zf.namelist())
 		raise NameError('File '+fname+' not found in zipped file: '+url)
+	else:
+		empRaw = pd.read_excel(BytesIO(zf.read(fname)))
+		return empRaw
 
 # def main():
 # 	'''

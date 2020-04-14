@@ -257,7 +257,7 @@ def load_zipped_excel(url,fname):
 		return empRaw
 	except:
 		print(zf.namelist())
-		raise NameError('File not found')
+		raise NameError('File '+fname+' not found in zipped file: '+url)
 
 # def main():
 # 	'''

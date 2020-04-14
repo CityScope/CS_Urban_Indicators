@@ -12,7 +12,9 @@ The following commands build the image and then run a container using the image:
 > docker run -d python-urban-indicators
 ```
 
-Note that the container is running even though nothing shows up (that is what the option `-d` does). To see its status, first get the name that was automatically asigned to the container by running:
+When the image is built, it will copy the current status of the repo inside the image and it will try to download all the necessary shapefiles by running `download_shapeData.py`. This might take a while and you might want to do this inside a screen to avoid shutting it down by accident. 
+
+Once you execut the `docker run` command, the container is running even though nothing shows up (that is what the option `-d` does). To see its status, first get the name that was automatically asigned to the container by running:
 ```
 > docker container ls
 ```

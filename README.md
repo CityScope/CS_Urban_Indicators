@@ -4,7 +4,7 @@
 
 ### Deploy modules
 
-Dockerization allows us to deploy the modules in any server with docker. The deployment created a docker image with all the requirements specified in `requirements.txt` and the contents of the local `CS_Urban_Indicators` directory, and runs the listen.py script. 
+Dockerization allows us to deploy the modules in any server with docker. The deployment creates a docker image with all the requirements specified in `requirements.txt` and the contents of the local `CS_Urban_Indicators` directory, and runs the listen.py script. 
 
 The following commands build the image and then run a container using the image:
 ```
@@ -12,9 +12,14 @@ The following commands build the image and then run a container using the image:
 > docker run -d python-urban-indicators
 ```
 
-Note that the container is running even though nothing shows up. To see its status, attache to the container:
+Note that the container is running even though nothing shows up (that is what the option `-d` does). To see its status, first get the name that was automatically asigned to the container by running:
 ```
-> docker container attach python-urban-indicators
+> docker container ls
+```
+
+Then, attach to the container:
+```
+> docker container attach *container_name*
 ```
 
 ### Use a container for testing

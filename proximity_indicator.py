@@ -30,18 +30,21 @@ class ProxIndicator(Indicator):
         self.zones_path='./tables/{}/geometry/model_area.geojson'.format(self.table_name)
         self.params_path='./tables/{}/accessibility_params.json'.format(self.table_name)
         self.table_configs=json.load(open(self.table_config_file_path))
+        self.scalers=self.table_configs['scalers']
+        self.all_poi_types=[tag for tag in self.table_configs['access_osm_pois'] + self.table_configs['access_zonal_pois']]
+        assert(all(poi in self.scalers for poi in self.all_poi_types))
         self.radius=15 # minutes
         self.dummy_link_speed_met_min=2*1000/60
         self.host='https://cityio.media.mit.edu/'
         self.pois_per_lu={
                   'Residential': {'housing': 200},
-                  'Office Tower': {'employment': 200},
-                  'Office': {'employment': 100},
+                  'Office Tower': {'employment': 800},
+                  'Office': {'employment': 400},
                   'Plaza': {'parks': 1},
                   'Institutional': {'education': 1},
                   'Retail': {'groceries': 1},
-                  'Park': {'parks': 1},
-                  'Mix-use': {'food': 1, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
+                  'Park': {'parks': 2},
+                  'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
                   'Service': {'parking': 100}}
         
     def prepare_model(self):
@@ -102,8 +105,7 @@ class ProxIndicator(Indicator):
         for i, row in self.edges.iterrows():
             self.graph.add_edge(row['from_int'], row['to_int'], weight=row['weight'])
           
-        self.all_poi_types=[tag for tag in self.base_amenities] + self.table_configs['access_zonal_pois']
-        assert(all(poi in self.scalers for poi in self.all_poi_types))
+
         self.pois_at_base_nodes={n: {t:0 for t in self.all_poi_types} for n in self.graph.nodes} 
         
         print('Finding closest node to each base POI')            
@@ -249,7 +251,7 @@ class ProxIndicator(Indicator):
         output={'sample_nodes_acc_base': self.sample_nodes_acc_base,
                 'grid_nodes_acc_base': self.grid_nodes_acc_base,
 #                'pois_per_lu': self.pois_per_lu,
-                'all_poi_types': self.all_poi_types,
+#                'all_poi_types': self.all_poi_types,
                 'from_employ_pois': self.from_employ_pois,
                 'from_housing_pois': self.from_housing_pois,
                 'sample_lons': self.sample_lons,
@@ -265,7 +267,7 @@ class ProxIndicator(Indicator):
             self.sample_nodes_acc_base=params['sample_nodes_acc_base']
             self.grid_nodes_acc_base=params['grid_nodes_acc_base']
 #            self.pois_per_lu=params['pois_per_lu']
-            self.all_poi_types=params['all_poi_types']
+#            self.all_poi_types=params['all_poi_types']
             self.from_employ_pois=params['from_employ_pois']
             self.from_housing_pois=params['from_housing_pois']
             self.sample_lons=params['sample_lons']

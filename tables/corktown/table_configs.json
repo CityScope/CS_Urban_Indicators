@@ -2,7 +2,6 @@
   "local_epsg": "2253",
   "access_osm_pois": [
     "restaurants",
-    "nightlife",
     "education",
     "groceries",
     "parks"
@@ -13,10 +12,9 @@
   ],
   "scalers": {
     "restaurants":200,
-    "nightlife":60,
     "education":50,
     "groceries":20,
-    "parks":50,
+    "parks":100,
     "housing":120000,
     "employment":200000
   },

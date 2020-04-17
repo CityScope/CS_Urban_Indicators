@@ -15,9 +15,17 @@ def main():
 #    2nd order indicators
     E = EconomicIndicator(innovation_indicator=I, name='Economic')
     
-    aggregation=[{'indicator': P, 'names': ['Access to education', 'Access to parks']}]
+    swb_aggregation=[{'indicator': P, 'names': [
+#            'Access to education', 
+            'Access to employment',
+            'Access to restaurants',
+            'Access to groceries',
+            'Access to parks'
+            ]}]
+    
+    
     S=AggregateIndicator(name='Social Well-Being',
-                              indicators_to_aggregate=aggregation, 
+                              indicators_to_aggregate=swb_aggregation, 
                               agg_fun=mean)
     
     H = Handler('corktown', quietly=False)

@@ -28,8 +28,8 @@ class MobilityIndicator(Indicator):
         lm = LinearRegression()
         co2_model=lm.fit(X, y_co2)
         self.co2_model=co2_model
-        self.co2_min=3
-        self.co2_max=max(y_co2)
+        self.co2_min=3.5
+        self.co2_max=5
         
         
     def predict_co2(self, n_resi, n_office):

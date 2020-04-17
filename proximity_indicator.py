@@ -38,12 +38,12 @@ class ProxIndicator(Indicator):
         self.host='https://cityio.media.mit.edu/'
         self.pois_per_lu={
                   'Residential': {'housing': 200},
-                  'Office Tower': {'employment': 800},
+                  'Office Tower': {'employment': 1200},
                   'Office': {'employment': 400},
                   'Plaza': {'parks': 1},
                   'Institutional': {'education': 1},
                   'Retail': {'groceries': 1},
-                  'Park': {'parks': 2},
+                  'Park': {'parks': 4},
                   'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
                   'Service': {'parking': 100}}
         
@@ -84,8 +84,6 @@ class ProxIndicator(Indicator):
         # To get all amenity data
         bounds_all=self.table_configs['bboxes']['amenities']
         self.base_amenities=get_osm_amenies(bounds_all, tags, self.wgs, self.projection)
-        
-        self.scalers=self.table_configs['scalers']
         
         # get zonal POI data (eg. housing per census tract)
         if self.table_configs['access_zonal_pois']:
@@ -256,7 +254,7 @@ class ProxIndicator(Indicator):
                 'from_housing_pois': self.from_housing_pois,
                 'sample_lons': self.sample_lons,
                 'sample_lats': self.sample_lats,
-                'scalers': self.scalers,
+#                'scalers': self.scalers,
                 'affected_grid_nodes': self.affected_grid_nodes,
                 'affected_sample_nodes': self.affected_sample_nodes}        
         json.dump(output, open(self.params_path, 'w'))
@@ -272,7 +270,7 @@ class ProxIndicator(Indicator):
             self.from_housing_pois=params['from_housing_pois']
             self.sample_lons=params['sample_lons']
             self.sample_lats=params['sample_lats']
-            self.scalers=params['scalers']
+#            self.scalers=params['scalers']
             self.affected_grid_nodes=params['affected_grid_nodes']
             self.affected_sample_nodes=params['affected_sample_nodes']
         except:
@@ -302,6 +300,7 @@ class ProxIndicator(Indicator):
         return output_geojson
     
     def return_indicator(self, geogrid_data):
+        print(self.scalers)
         sample_nodes_acc={n: {t:self.sample_nodes_acc_base[n][t] for t in self.all_poi_types
                               } for n in self.sample_nodes_acc_base}
         grid_nodes_acc={n: {t:self.grid_nodes_acc_base[n][t] for t in self.all_poi_types

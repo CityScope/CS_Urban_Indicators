@@ -1,5 +1,8 @@
 *.pyc
 
+*access_network_edges.csv
+*access_network_nodes.csv
+*accessibility_params.json
 # Ignore local jupyter notebook files
 .ipynb_checkpoints/*
 *.ipynb

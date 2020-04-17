@@ -45,6 +45,7 @@ class ProxIndicator(Indicator):
                   'Service': {'parking': 100}}
         
     def prepare_model(self):
+        print('Preparing model')
         self.get_spatial_data()
         self.get_base_pois()
         self.create_transport_network()
@@ -58,6 +59,7 @@ class ProxIndicator(Indicator):
         self.projection=pyproj.Proj("+init=EPSG:"+local_epsg)
         self.wgs=pyproj.Proj("+init=EPSG:4326")
         cityIO_get_url=self.host+'api/table/'+self.table_name
+        print(cityIO_get_url+'/GEOGRID')
         with urllib.request.urlopen(cityIO_get_url+'/GEOGRID') as url:
             self.geogrid=json.loads(url.read().decode())
         self.geogrid_header=self.geogrid['properties']['header']
@@ -205,7 +207,7 @@ class ProxIndicator(Indicator):
         # for each sample node, create an isochrone and count the amenities of each type        
         self.sample_nodes_acc_base={str(n): {poi_type:0 for poi_type in self.all_poi_types} for n in range(len(self.sample_x))} 
         for sn in self.sample_nodes_acc_base:
-            if sn%200==0:
+            if int(sn)%200==0:
                 print('{} of {} sample nodes'.format(sn, len(self.sample_nodes_acc_base)))
             isochrone_graph=nx.ego_graph(self.graph, 's'+str(sn), radius=self.radius, center=True, 
                                          undirected=False, distance='weight')
@@ -218,7 +220,7 @@ class ProxIndicator(Indicator):
         # same for geogrid nodes
         self.grid_nodes_acc_base={str(n): {poi_type:0 for poi_type in self.all_poi_types} for n in range(len(self.geogrid_xy))} 
         for gn in self.grid_nodes_acc_base:
-            if gn%200==0:
+            if int(gn)%200==0:
                 print('{} of {} geogrid nodes'.format(gn, len(self.grid_nodes_acc_base)))
             isochrone_graph=nx.ego_graph(self.graph, 'g'+str(gn), radius=self.radius, center=True, 
                                          undirected=False, distance='weight')
@@ -238,8 +240,8 @@ class ProxIndicator(Indicator):
             a_node='g'+str(gi)
             affected_nodes=nx.ego_graph(rev_graph, a_node, radius=self.radius, center=True, 
                                         undirected=False, distance='weight').nodes
-            self.affected_grid_nodes[gi]=[n for n in affected_nodes if 'g' in str(n)]
-            self.affected_sample_nodes[gi]=[n for n in affected_nodes if 's' in str(n)]
+            self.affected_grid_nodes[str(gi)]=[n for n in affected_nodes if 'g' in str(n)]
+            self.affected_sample_nodes[str(gi)]=[n for n in affected_nodes if 's' in str(n)]
         self.from_employ_pois=['housing']
         self.from_housing_pois=[poi for poi in self.all_poi_types if not poi=='housing']
             
@@ -280,7 +282,7 @@ class ProxIndicator(Indicator):
         takes lists of x and y coordinates and a list containing the accessibility 
         score for each point and tag category
         """
-           
+        
         output_geojson={
          "type": "FeatureCollection",
          "properties": self.all_poi_types,
@@ -345,8 +347,8 @@ class ProxIndicator(Indicator):
     
 
 def main():
-    P= ProxIndicator(name='proximity',  category_in='numeric', table_name='corktown')
-    H = Handler('corktown', quietly=False)
+    P= ProxIndicator(name='proximity',  category_in='heatmap', table_name='grasbrook')
+    H = Handler('grasbrook', quietly=False)
     H.add_indicator(P)
     
     print(H.geogrid_data())

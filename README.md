@@ -160,7 +160,7 @@ H.listen()
 ## Custom accessibility indicator
 
 The same class can be used to define a heatmap or accessiblity indicator, as opposed to a numeric indicator.
-First, set the class property *category* equal to 'heatmap' or to 'access'. This will flag the indicator as a heatmap and will tell the Handler class what to do with it.
+First, set the class property *indicator_type* equal to 'heatmap' or to 'access'. This will flag the indicator as a heatmap and will tell the Handler class what to do with it.
 Second, make sure that the *return_indicator* function returns a list of features or a geojson. 
 The example below shows an indicator that returns noise for every point in the center of a grid cell. Because this indicator needs the coordinates of table to return the geojson, it sets the property *requires_geometry* to True.
 
@@ -175,7 +175,7 @@ class Noise(Indicator):
 
     '''
     def setup(self):
-        self.category = 'heatmap'
+        self.indicator_type = 'heatmap'
         self.requires_geometry = True
 
     def load_module(self):

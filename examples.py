@@ -47,7 +47,7 @@ from numpy.random import random
 class Noise(Indicator):
     '''
     Example of Noise heatmap indicator for points centered in each grid cell.
-    The main difference between a heatmap and a numeric indicator is that category is set to either 'heatmap' or 'access'.
+    The main difference between a heatmap and a numeric indicator is that indicator_type is set to either 'heatmap' or 'access'.
 
     Note that this class requires the geometry of the table as input, which is why it sets:
     requires_geometry = True
@@ -55,7 +55,7 @@ class Noise(Indicator):
 
     '''
     def setup(self,name=None):
-        self.category = 'heatmap'
+        self.indicator_type = 'heatmap'
         self.name = ('noise' if name is None else name)
         self.requires_geometry = True
 

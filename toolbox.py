@@ -70,23 +70,23 @@ class Handler:
 		'''
 		print(self.front_end_url)
 
-	def see_current(self,category='numeric'):
+	def see_current(self,indicator_type='numeric'):
 		'''
 		Returns the current values of the indicators posted for the table.
 
 		Parameters
 		----------
-		category : str (default='numeric')
-			Category of the indicators.
+		indicator_type : str (default='numeric')
+			Type of the indicator.
 			Choose either 'numeric', 'indicators', 'access', or 'heatmap'
 			('access' and 'heatmap' refer to the same type)
 		'''
-		if category in ['numeric','indicators']:
+		if indicator_type in ['numeric','indicators']:
 			r = self._get_url(self.cityIO_get_url+'/indicators')
-		elif category in ['heatmap','access']:
+		elif indicator_type in ['heatmap','access']:
 			r = self._get_url(self.cityIO_get_url+'/access')
 		else:
-			raise NameError('Indicator category should either be numeric, indicators, heatmap, or access. Current type: '+str(category))
+			raise NameError('Indicator type should either be numeric, indicators, heatmap, or access. Current type: '+str(indicator_type))
 		if r.status_code==200:
 			return r.json()
 		else:
@@ -131,8 +131,8 @@ class Handler:
 		self.indicators[indicatorName] = I
 		if test:
 			geogrid_data = self._get_grid_data()
-			if I.category not in set(['indicators','numeric','heatmap','access']):
-				raise NameError('Indicator category should either be numeric, indicators, heatmap, or access. Current type: '+str(I.category))
+			if I.indicator_type not in set(['indicators','numeric','heatmap','access']):
+				raise NameError('Indicator type should either be numeric, indicators, heatmap, or access. Current type: '+str(I.indicator_type))
 			try:
 				self._new_value(geogrid_data,indicatorName)
 			except:
@@ -214,7 +214,7 @@ class Handler:
 			[
 				{
 					'name':xxx, 
-					'category':yyy, 
+					'indicator_type':yyy, 
 					'viz_type':zzz, 
 					'value':value
 				},
@@ -242,11 +242,11 @@ class Handler:
 		'''
 		I = self.indicators[indicator_name]
 
-		if I.category in ['access','heatmap']:
+		if I.indicator_type in ['access','heatmap']:
 			new_value = I.return_indicator(geogrid_data)
 			new_value = self._format_geojson(new_value)
 			return [new_value]
-		elif I.category in ['numeric','indicators']:
+		elif I.indicator_type in ['numeric','indicators']:
 			new_value = I.return_indicator(geogrid_data)
 			if isinstance(new_value,list)|isinstance(new_value,tuple):
 				for i in range(len(new_value)):
@@ -267,8 +267,8 @@ class Handler:
 						warn('Indicator return invalid type:'+str(indicator_name))
 				if ('name' not in new_value.keys()):
 					new_value['name'] = indicator_name
-				if ('category' not in new_value.keys())&(I.category is not None):
-					new_value['category'] = I.category
+				if ('indicator_type' not in new_value.keys())&(I.indicator_type is not None):
+					new_value['indicator_type'] = I.indicator_type
 				if ('viz_type' not in new_value.keys())&(I.viz_type is not None):
 					new_value['viz_type'] = I.viz_type
 				return [new_value]
@@ -324,7 +324,7 @@ class Handler:
 
 		for indicator_name in self.indicators:
 			try:
-				if self.indicators[indicator_name].category in ['access','heatmap']:
+				if self.indicators[indicator_name].indicator_type in ['access','heatmap']:
 					new_values_heatmap += self._new_value(geogrid_data,indicator_name)
 				else:
 					new_values_numeric += self._new_value(geogrid_data,indicator_name)
@@ -339,7 +339,7 @@ class Handler:
 				new_values_numeric += current
 
 			if len(new_values_heatmap)!=0:
-				current_access = self.see_current(category='access')
+				current_access = self.see_current(indicator_type='access')
 				self.previous_access = current_access
 				current_access = self._format_geojson(current_access)
 				new_values_heatmap = [current_access]+new_values_heatmap
@@ -490,15 +490,15 @@ class Handler:
 				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
-	def __init__(self,*args,requires_geometry=False,category='numeric',viz_type='default',**kwargs):
+	def __init__(self,*args,requires_geometry=False,indicator_type='numeric',viz_type='default',**kwargs):
 		self.name = None
-		self.category = category
+		self.indicator_type = indicator_type
 		self.viz_type = viz_type
 		self.requires_geometry = requires_geometry
 
 		self.setup(*args,**kwargs)
 		self.load_module()
-		if self.category in ['heatmap','access']:
+		if self.indicator_type in ['heatmap','access']:
 			self.viz_type = None
 
 	def return_indicator(self,geogrid_data):
@@ -508,6 +508,14 @@ class Indicator:
 		{'name': 'Sea-Shell','value': 1.00}
 		'''
 		return {}
+
+	def return_baseline(self,geogrid_data):
+		'''
+		In general, the baseline might want to use the geogrid_data, as it might need to access some information.
+		For example, the baseline might be a heatmap that needs the coordinates of the table.
+		'''
+		return None
+
 
 	def setup(self):
 		pass

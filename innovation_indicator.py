@@ -45,10 +45,11 @@ class InnoIndicator(Indicator):
 		skills = self.SKSindicator(skill_composition)
 		skills = self.normalize(skills)
 		out = [
-				{'name':'District-knowledge','value':0.5,'category':'innovation'},
-				{'name':'City-skills','value':skills,'category':'innovation'},
-				{'name':'Region-funding','value':0.3,'category':'innovation'}
+				{'name':'District-knowledge','value':0.5,'category':'innovation', 'viz_type': self.viz_type},
+				{'name':'City-skills','value':skills,'category':'innovation', 'viz_type': self.viz_type},
+				{'name':'Region-funding','value':0.3,'category':'innovation', 'viz_type': self.viz_type}
 			  ]
+		self.value_indicators=out
 		return out
 		
 

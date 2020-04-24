@@ -78,15 +78,15 @@ class Handler:
 		----------
 		indicator_type : str (default='numeric')
 			Type of the indicator.
-			Choose either 'numeric', 'indicators', 'access', or 'heatmap'
+			Choose either 'numeric', 'access', or 'heatmap'
 			('access' and 'heatmap' refer to the same type)
 		'''
-		if indicator_type in ['numeric','indicators']:
+		if indicator_type in ['numeric']:
 			r = self._get_url(self.cityIO_get_url+'/indicators')
 		elif indicator_type in ['heatmap','access']:
 			r = self._get_url(self.cityIO_get_url+'/access')
 		else:
-			raise NameError('Indicator type should either be numeric, indicators, heatmap, or access. Current type: '+str(indicator_type))
+			raise NameError('Indicator type should either be numeric, heatmap, or access. Current type: '+str(indicator_type))
 		if r.status_code==200:
 			return r.json()
 		else:
@@ -131,8 +131,8 @@ class Handler:
 		self.indicators[indicatorName] = I
 		if test:
 			geogrid_data = self._get_grid_data()
-			if I.indicator_type not in set(['indicators','numeric','heatmap','access']):
-				raise NameError('Indicator type should either be numeric, indicators, heatmap, or access. Current type: '+str(I.indicator_type))
+			if I.indicator_type not in set(['numeric','heatmap','access']):
+				raise NameError('Indicator type should either be numeric, heatmap, or access. Current type: '+str(I.indicator_type))
 			try:
 				self._new_value(geogrid_data,indicatorName)
 			except:
@@ -246,7 +246,7 @@ class Handler:
 			new_value = I.return_indicator(geogrid_data)
 			new_value = self._format_geojson(new_value)
 			return [new_value]
-		elif I.indicator_type in ['numeric','indicators']:
+		elif I.indicator_type in ['numeric']:
 			new_value = I.return_indicator(geogrid_data)
 			if isinstance(new_value,list)|isinstance(new_value,tuple):
 				for i in range(len(new_value)):
@@ -490,7 +490,7 @@ class Handler:
 				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
-	def __init__(self,*args,requires_geometry=False,indicator_type='numeric',viz_type='default',**kwargs):
+	def __init__(self,*args,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
 		self.name = None
 		self.indicator_type = indicator_type
 		self.viz_type = viz_type

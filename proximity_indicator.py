@@ -21,7 +21,8 @@ from toolbox import Handler, Indicator
 
 class ProxIndicator(Indicator):
     def setup(self,*args,**kwargs):
-        self.category = kwargs['category_in']
+        self.viz_type = kwargs['viz_type_in']
+        self.indicator_type = kwargs['indicator_type_in']
         self.table_name= kwargs['table_name']
         self.osm_config_file_path='./osm_amenities.json'
         self.table_config_file_path='./tables/{}/table_configs.json'.format(self.table_name)
@@ -331,16 +332,16 @@ class ProxIndicator(Indicator):
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'Office', 'Light Industrial']])/self.scalers[poi]
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value})
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value, 'viz_type': self.viz_type})
         for poi in self.from_housing_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in ['Residential', 'Mix-use']])/self.scalers[poi]
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value}) 
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value, 'viz_type': self.viz_type}) 
 #        print(result)
         for v in self.value_indicators:
             v['value']=min(1, v['value'])
-        if self.category in ['heatmap', 'access']:            
+        if self.indicator_type in ['heatmap', 'access']:            
             grid_geojson=self.create_access_geojson(sample_nodes_acc)
             return grid_geojson
         else:
@@ -348,7 +349,8 @@ class ProxIndicator(Indicator):
     
 
 def main():
-    P= ProxIndicator(name='proximity',  category_in='heatmap', table_name='grasbrook')
+    P= ProxIndicator(name='proximity',  indicator_type_in='heatmap', 
+                     table_name='grasbrook', viz_type_in='heatmap')
     H = Handler('grasbrook', quietly=False)
     H.add_indicator(P)
     

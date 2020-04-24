@@ -48,7 +48,11 @@ class MobilityIndicator(Indicator):
         print(n_off)
         co2_normalised=self.predict_co2(n_resi, n_off)
         print(co2_normalised)
-        return [{'name': 'Sustainable Mobility', 'value': 1-co2_normalised}]
+        self.value_indicators=[{'name': 'Mobility CO2 Performance', 'value': 1-co2_normalised, 
+                 'viz_type': self.viz_type},
+                {'name': 'Mobility Health Impacts', 'value': 0.4, 
+                 'viz_type': self.viz_type}]
+        return self.value_indicators
         
     
 def main():

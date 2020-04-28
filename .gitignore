@@ -1,8 +1,15 @@
 *.pyc
 
+# ignore accessibility network files
 *access_network_edges.csv
 *access_network_nodes.csv
 *accessibility_params.json
+
+# ignore buildings data as files are too large
+# obtained from https://www.eia.gov/consumption/
+*2012_public_use_data_aug2016.csv
+*recs2015_public_v4.csv
+
 # Ignore local jupyter notebook files
 .ipynb_checkpoints/*
 *.ipynb

@@ -4,6 +4,7 @@ from innovation_indicator import InnoIndicator
 from mobility_indicator import MobilityIndicator
 from aggregate_indicator import AggregateIndicator
 from economic_indicator import EconomicIndicator
+from buildings_indicator import BuildingsIndicator
 
 from statistics import mean
 
@@ -13,6 +14,7 @@ def main():
 #    P = ProxIndicator(name='proximity',  viz_type_in='radar', table_name='corktown')
     P_hm = ProxIndicator(name='proximity',  viz_type_in='heatmap', indicator_type_in='heatmap', table_name='corktown')
     M = MobilityIndicator(name='mobility', table_name='corktown')
+    B= BuildingsIndicator(name='buildings',  table_name='corktown')
     
     # 2nd order  individual indicators 
     E = EconomicIndicator(grid_to_industries=I.grid_to_industries, 
@@ -26,6 +28,7 @@ def main():
     H.add_indicator(P_hm)
     H.add_indicator(M)
     H.add_indicator(E)
+    H.add_indicator(B)
     
     
     # Composite indicators    
@@ -65,11 +68,20 @@ def main():
     economic_agg_ind=AggregateIndicator(name='Local Economy',
                               indicators_to_aggregate=economic_agg, 
                               agg_fun=mean, viz_type_in='bar')
+    
+    buildings_agg=[{'indicator': B, 'names': [
+            'Commercial Energy Performance', 
+            'Residential Energy Performance'
+            ]}]
+    buildings_agg_ind=AggregateIndicator(name='Sustainable Buildings',
+                              indicators_to_aggregate=buildings_agg, 
+                              agg_fun=mean, viz_type_in='bar')
            
     H.add_indicator(social_agg_ind)
     H.add_indicator(inno_agg_ind) 
     H.add_indicator(mobility_agg_ind) 
     H.add_indicator(economic_agg_ind) 
+    H.add_indicator(buildings_agg_ind) 
 
     H.listen()
 

@@ -6,7 +6,7 @@ import numpy as np
 from geopandas import sjoin
 from APICalls import ACSCall,patentsViewDownload,load_zipped_excel
 from download_shapeData import SHAPES_PATH
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from collections import defaultdict
 from toolbox import Indicator
 
@@ -16,7 +16,9 @@ class InnoIndicator(Indicator):
 		self.name       = 'Innovation-Potential'
 		self.occLevel   = (occLevel if occLevel<=2 else occLevel+1) 
 		self.modelPath  = modelPath
-		self.coefs_path = os.path.join(modelPath,'lasso_coefs.csv')
+
+		self.sks_coefs_path = os.path.join(modelPath,'sks_coefs.csv')
+		self.kno_coefs_path = os.path.join(modelPath,'kno_coefs.csv')
 		self.saveData   = saveData
 		self.quietly    = quietly
 
@@ -26,17 +28,26 @@ class InnoIndicator(Indicator):
 		self.emp_occ = None
 		self.msas  = None
 		self.nPats = None
-		self.train_data = None
+		self.RECPI = None
+		self.RnD   = None
 
-		self.coefs = None
+		self.train_data_sks = None
+		self.train_data_kno = None
+		
 
-		self.RnD = None
+		self.coefs_sks      = None
+		self.norm_coefs_sks = None
+		self.coefs_kno      = None
+		self.coefs_rnd      = None
 
-		self.IO_data     = None
-		self.msa_skills  = None
-		self.msa_knowl   = None
-		self.skill_names = pd.DataFrame([],columns=['Element ID','Element Name'])
-		self.combinedSkills = pd.DataFrame([],columns=['SELECTED_LEVEL','Element ID','Data Value'])
+		self.IO_data = None
+
+		self.skills          = None
+		self.knowledge       = None
+		self.msa_skills      = None
+		self.msa_knowledge   = None
+		self.skill_names     = None
+		self.knowledge_names = None
 
 	def return_indicator(self, geogrid_data):
 		industry_composition = self.grid_to_industries(geogrid_data)
@@ -45,11 +56,10 @@ class InnoIndicator(Indicator):
 		skills = self.SKSindicator(skill_composition)
 		skills = self.normalize(skills)
 		out = [
-				{'name':'District-knowledge','value':0.5,'category':'innovation', 'viz_type': self.viz_type},
-				{'name':'City-skills','value':skills,'category':'innovation', 'viz_type': self.viz_type},
-				{'name':'Region-funding','value':0.3,'category':'innovation', 'viz_type': self.viz_type}
+				{'name':'District-knowledge','value':0.5,'category':'innovation'},
+				{'name':'City-skills','value':skills,'category':'innovation'},
+				{'name':'Region-funding','value':0.3,'category':'innovation'}
 			  ]
-		self.value_indicators=out
 		return out
 		
 
@@ -65,6 +75,9 @@ class InnoIndicator(Indicator):
 		'''
 		industry_composition = {'424':100,'813':10,'518':30,'313':50}
 		return industry_composition
+
+	def KNOindicator(self,industry_composition):
+		pass
 
 	def INDindicator(self,industry_composition):
 		'''
@@ -99,13 +112,22 @@ class InnoIndicator(Indicator):
 			 '2.C.3.d': 0.056718692091353703,
 			 ...
 		'''
-		if self.coefs is None:
+		if (self.coefs_sks is None)|(self.norm_coefs_sks is None):
 			self.load_fitted_model()
+
 		normalization = float(sum(skill_composition.values()))
 		if normalization != 1:
 			skill_composition = {k:skill_composition[k]/normalization for k in skill_composition}
 		values = defaultdict(int,skill_composition)
-		return sum([self.coefs[k]*values[k] for k in self.coefs if k!='intercept'])
+
+		return_value = self.coefs['intercept']
+		for k in [k for k in self.coefs if k!='intercept']:
+			if k[-2:]=='_2':
+				return_value+= self.coefs[k]*((values[k[:-2]]-self.norm_coefs_sks[k[:-2]]['mean'])/self.norm_coefs_sks[k[:-2]]/['std'])**2
+			else:
+				return_value+= self.coefs[k]*(values[k]-self.norm_coefs_sks[k]['mean'])/self.norm_coefs_sks[k]/['std']
+		return return_value
+		return np.exp(return_value)
 
 	def occupations_to_skills(self,worker_composition):
 		'''
@@ -127,7 +149,7 @@ class InnoIndicator(Indicator):
 			 ...
 		'''
 		if self.combinedSkills is None:
-			self.load_sks_data()
+			self.load_onet_data()
 		totalWorkers = sum(worker_composition.values())
 		nWorkers = pd.DataFrame(worker_composition.items(),columns=['SELECTED_LEVEL','N'])
 		workers_by_skill = pd.merge(self.combinedSkills,nWorkers)
@@ -143,16 +165,15 @@ class InnoIndicator(Indicator):
 		Loads the coefficients for the fitted model found in coefs_path.
 		'''
 		if coefs_path is None:
-			coefs_path = self.coefs_path
+			coefs_path = self.sks_coefs_path
 		if os.path.isfile(coefs_path):
-			coefs_df = pd.read_csv(coefs_path)
+			coefs_df = pd.read_csv(coefs_path,low_memory=False)
 			self.coefs = dict(coefs_df[['Element ID','coef']].values)
 		else:
-			raise NameError('No fitted model found, please run train function.')
+			print('No fitted model found, please run train function.')
 		self.load_IO_data()
-		self.load_sks_data()
 
-	def train(self,coefs_path=None):
+	def train_citySKS(self,coefs_path=None):
 		'''
 		Trains the model: finds the relative importance of each skill using positive Lasso regression with number of patents by US-metro area as the organizing variable.
 
@@ -164,47 +185,70 @@ class InnoIndicator(Indicator):
 		self.load_OCC_data()
 		self.load_MSA_data()
 		self.load_patent_data()
-		self.load_sks_data()
+		self.load_onet_data()
 
 		msa_skills = self.msa_skills
-		msa_knowl = self.msa_knowl
+		skills_columns = msa_skills.drop('GEOID',1).columns.tolist()
 
-		df = pd.merge(msa_knowl,msa_skills,how='inner')
-		df['TOT_SKS'] = df[[c for c in df.columns if c[0]=='2']].sum(1)
-		for c in df.columns:
-			if c[0]=='2':
-				df[c] = df[c]/df['TOT_SKS']
+		df = msa_skills
+		df = df.assign(TOT_SKS=df[skills_columns].sum(1))
+		for c in skills_columns:
+			df[c] = df[c]/df['TOT_SKS']
 
 		df = pd.merge(df,self.nPats,how='inner')
 		df = pd.merge(df,self.emp_msa.groupby('GEOID').sum().reset_index())
+		df = df.assign(pats_pc = df['nPats']/df['pop'])
 
-		df['pats_pc'] = df['nPats']/df['pop']
+		self.train_data_sks = df
 
-		self.train_data = df
+		Xdf = df.drop(['GEOID','nPats','pop','pats_pc','TOT_EMP','TOT_SKS'],1)
 
-		Xdf = df.drop(['GEOID','nPats','pop','pats_pc'],1)
+		norm_coefs = {}
+		for c in Xdf.columns:
+			norm_coefs[c] = {'std':Xdf[c].std(),'mean':Xdf[c].mean()}
+			Xdf[c] = (Xdf[c]-Xdf[c].mean())/Xdf[c].std()
+			Xdf[c+'_2'] = Xdf[c]**2
 		X = Xdf.values
-		Y = df['pats_pc'].values
+		Y = np.log(df['pats_pc'].values)
 
-		lasso = Lasso(alpha=0.,positive=True)
-		lasso.fit(X,Y)
-		train_score=lasso.score(X,Y)
-		coeff_used = np.sum(lasso.coef_!=0)
+		model = Ridge(alpha=1.)
+		model.fit(X,Y)
+
+		train_score=model.score(X,Y)
+		coeff_used = np.sum(model.coef_!=0)
 		print("training score:", train_score )
 		print("number of features used: ", coeff_used,'out of',np.shape(X)[-1])
 
-		variables = Xdf.columns.values[np.where(lasso.coef_!=0)[0]]
+		variables = Xdf.columns.values[np.where(model.coef_!=0)[0]]
 		print(len(variables),variables)
-		coefs = dict(zip(variables,lasso.coef_[lasso.coef_!=0]))
-		coefs['intercept'] = lasso.intercept_
+		coefs = dict(zip(variables,model.coef_[model.coef_!=0]))
+		coefs['intercept'] = model.intercept_
 		coefs_df = pd.DataFrame(coefs.items(),columns=['Element ID','coef'])
+
 		if coefs_path is None:
-			coefs_path = self.coefs_path
+			coefs_path = self.sks_coefs_path
 		if self.saveData:
 			coefs_df.to_csv(coefs_path,index=False)
-		self.coefs = coefs
+		self.coefs_sks = coefs
+		self.norm_coefs_sks = norm_coefs
 
 		return pd.merge(coefs_df,self.skill_names,how='left').sort_values(by='coef',ascending=False)
+
+	def load_RECPI(self):
+		'''
+		Loads entrepreneruship data from local directory (set in modelPath=tables/innovation_data)
+
+		Does not download data, but raises error if not found.
+
+		Download the file Entrepreneurship_by_ZIP_Code_policy.tab from:
+		`https://www.startupcartography.com`
+		and save in modelPath
+		'''
+		file_path = os.path.join(self.modelPath,'Entrepreneurship_by_ZIP_Code_policy.tab')
+		if not os.path.isfile(file_path):
+			raise NameError('Entrepreneurship data not found. Please download from \nhttps://www.startupcartography.com/\nand save to '+self.modelPath)
+		RECPI = pd.read_csv(file_path,delimiter='\t',dtype={'zipcode':str},low_memory=False)
+		self.RECPI = RECPI[RECPI['year']==2016][['zipcode','state','EQI','SFR','RECPI','REAI']]
 
 	def load_IO_data(self):
 		'''
@@ -218,11 +262,11 @@ class InnoIndicator(Indicator):
 			IO_dataRaw = load_zipped_excel(url,fname)
 			IO_dataRaw.to_csv(os.path.join(self.modelPath,'nat4d_M2018_dl.csv'),index=False)
 		else:
-			IO_dataRaw = pd.read_csv(os.path.join(self.modelPath,'nat4d_M2018_dl.csv'))
+			IO_dataRaw = pd.read_csv(os.path.join(self.modelPath,'nat4d_M2018_dl.csv'),low_memory=False)
 		IO_data = IO_dataRaw[(IO_dataRaw['OCC_GROUP']=='detailed')&(IO_dataRaw['TOT_EMP']!='**')]
-		IO_data['TOT_EMP'] = IO_data['TOT_EMP'].astype(float)
-		IO_data['NAICS'] = ('00'+IO_data['NAICS'].astype(str)).str[-6:]
-		IO_data['SELECTED_LEVEL'] = IO_data['OCC_CODE'].str[:self.occLevel]
+		IO_data = IO_data.astype({'TOT_EMP': 'float'})
+		IO_data = IO_data.assign(NAICS=('00'+IO_data['NAICS'].astype(str)).str[-6:])
+		IO_data = IO_data.assign(SELECTED_LEVEL=IO_data['OCC_CODE'].str[:self.occLevel])
 		self.IO_data = IO_data.groupby(['NAICS','SELECTED_LEVEL']).sum()[['TOT_EMP']].reset_index()
 
 	def industries_to_occupations(self,industry_composition,naicsLevel = None):
@@ -281,7 +325,7 @@ class InnoIndicator(Indicator):
 		worker_composition = dict(worker_composition.values)
 		return worker_composition
 
-	def load_sks_data(self):
+	def load_onet_data(self):
 		'''
 		Loads skills and knowledge datasets from ONET.
 		For more information see:
@@ -289,35 +333,51 @@ class InnoIndicator(Indicator):
 
 		'''
 		onet_url = 'https://www.onetcenter.org/dl_files/database/db_24_2_excel/'
-		if (not os.path.isfile(os.path.join(self.modelPath,'msa_skills.csv')))|(not os.path.isfile(os.path.join(self.modelPath,'msa_knowl.csv'))):
-			if (self.msa_skills is None)|(self.msa_knowl is None):
+		if (self.skills is None)|(self.knowledge is None):
+			if os.path.isfile(os.path.join(self.modelPath,'Skills.xlsx')):
+				skillsRaw = pd.read_excel(os.path.join(self.modelPath,'Skills.xlsx'))
+			else:
 				skillsRaw = pd.read_excel(onet_url+'Skills.xlsx')
-				skills = self.group_up_skills(skillsRaw)
-				self.msa_skills     = self._aggregate_to_MSA(skills)
-				self.skill_names    = pd.concat([self.skill_names,skillsRaw[['Element ID','Element Name']].drop_duplicates()]).drop_duplicates()
-				self.combinedSkills = pd.concat([self.combinedSkills,skills[['SELECTED_LEVEL','Element ID','Data Value']]])
-
+				if self.saveData:
+					skillsRaw.to_excel(os.path.join(self.modelPath,'Skills.xlsx'),index=False)
+			skills = self.group_up_skills(skillsRaw)
+			skills = skills[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()
+			self.skills = skills
+			self.skill_names = skillsRaw[['Element ID','Element Name']].drop_duplicates()
+			self.msa_skills     = self._aggregate_to_MSA(skills)
+			
+			
+			if os.path.isfile(os.path.join(self.modelPath,'Knowledge.xlsx')):
+				knowledgeRaw = pd.read_excel(os.path.join(self.modelPath,'Knowledge.xlsx'))
+			else:
 				knowledgeRaw = pd.read_excel(onet_url+'Knowledge.xlsx')
-				knowledge = self.group_up_skills(knowledgeRaw)
-				self.msa_knowl      = self._aggregate_to_MSA(knowledge)
-				self.skill_names    = pd.concat([self.skill_names,knowledgeRaw[['Element ID','Element Name']].drop_duplicates()]).drop_duplicates()
-				self.combinedSkills = pd.concat([self.combinedSkills,knowledge[['SELECTED_LEVEL','Element ID','Data Value']]])
+				if self.saveData:
+					knowledgeRaw.to_excel(os.path.join(self.modelPath,'Knowledge.xlsx'),index=False)
+			knowledge = self.group_up_skills(knowledgeRaw)
+			knowledge = knowledge[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()				
+			self.knowledge = knowledge
+			self.knowledge_names = knowledgeRaw[['Element ID','Element Name']].drop_duplicates()
+			self.msa_knowledge   = self._aggregate_to_MSA(knowledge)
 
-			if self.saveData:
-				self.msa_skills.to_csv(os.path.join(self.modelPath,'msa_skills.csv'),index=False)
-				self.msa_knowl.to_csv(os.path.join(self.modelPath,'msa_knowl.csv'),index=False)
-				self.skill_names.to_csv(os.path.join(self.modelPath,'skill_names.csv'),index=False)
-				self.combinedSkills.to_csv(os.path.join(self.modelPath,'combinedSkills.csv'),index=False)
 
-		elif (self.msa_skills is None)|(self.msa_knowl is None):
-			self.msa_skills     = pd.read_csv(os.path.join(self.modelPath,'msa_skills.csv'),dtype={'GEOID':str})
-			self.msa_knowl      = pd.read_csv(os.path.join(self.modelPath,'msa_knowl.csv'),dtype={'GEOID':str})
-			self.skill_names    = pd.read_csv(os.path.join(self.modelPath,'skill_names.csv'))
-			self.combinedSkills = pd.read_csv(os.path.join(self.modelPath,'combinedSkills.csv'))
-
-	def _aggregate_to_MSA(self,skills):
+	def _aggregate_to_MSA(self,skills,pivot=True):
 		'''
 		Aggregates the skills to the MSA area based on employment by occupation in each MSA.
+		It works with any dataframe with the colmns: SELECTED_LEVEL,Element ID,Data Value
+		Where SELECTED_LEVEL corresponds to occupation codes and Element ID to the codes to aggregate.
+
+		Parameters
+		----------
+		skills: pandas.dataframe
+			Dataframe with skill level (Data Value) per skill (Element ID) per occupation (SELECTED_LEVEL)
+		pivot: boolean
+			If true, it will return the data in a wide format, as opposed to a long format
+
+		Returns
+		-------
+		msa_skills: pandas.DataFrame
+			Skill level per GEOID.
+			If pivot=True, each column correponds to on Element ID, if pivot=False, then there are three columns: GEOID, Element ID, Data Value. 
 		'''
 		if self.emp_msa is None:
 			self.load_MSA_data()
@@ -327,8 +387,9 @@ class InnoIndicator(Indicator):
 		msa_skills['w'] = msa_skills['TOT_EMP']/msa_skills['TOT_EMP_MSA']
 		msa_skills['Data Value'] = msa_skills['Data Value']*msa_skills['w']
 		msa_skills = msa_skills.groupby(['GEOID','Element ID']).sum()[['Data Value']].reset_index()
-		msa_skills = msa_skills.pivot_table(values='Data Value',index='GEOID',columns='Element ID').reset_index().fillna(0)
-		msa_skills.columns = msa_skills.columns.values.tolist()
+		if pivot:
+			msa_skills = msa_skills.pivot_table(values='Data Value',index='GEOID',columns='Element ID').reset_index().fillna(0)
+			msa_skills.columns = msa_skills.columns.values.tolist()
 		return msa_skills
 
 	def group_up_skills(self,skillsRaw,normalize=False):
@@ -366,19 +427,23 @@ class InnoIndicator(Indicator):
 
 	def load_MSA_data(self):
 		'''
-		Loads MSA shapefiles and population. 
+		Loads MSA shapefiles, population, and employment by occupation. 
 		Both datasets are used to fit the Skill indicator.
 		'''
 		if self.msas is None:
-			self.msas = gpd.read_file(os.path.join(SHAPES_PATH,'2019_cbsa/tl_2019_us_cbsa/tl_2019_us_cbsa.shp'))
+			msas = gpd.read_file(os.path.join(SHAPES_PATH,'2019_cbsa/tl_2019_us_cbsa/tl_2019_us_cbsa.shp'))
+			msas = msas[msas['LSAD']=='M1'] # Select only metro areas
+			self.msas = msas
 
 		if self.pop_msa is None:
 			if os.path.isfile(os.path.join(self.modelPath,'B01003_001E.csv')):
-				self.pop_msa = pd.read_csv(os.path.join(self.modelPath,'B01003_001E.csv'),dtype={'GEOID':str})
+				pop_msa = pd.read_csv(os.path.join(self.modelPath,'B01003_001E.csv'),dtype={'GEOID':str},low_memory=False)
 			else:
-				self.pop_msa = ACSCall(['B01003_001E'],level='metropolitan statistical area/micropolitan statistical area',year=2018).rename(columns={'metropolitan statistical area/micropolitan statistical area':'GEOID'})
+				pop_msa = ACSCall(['B01003_001E'],level='metropolitan statistical area/micropolitan statistical area',year=2018).rename(columns={'metropolitan statistical area/micropolitan statistical area':'GEOID'})
 				if self.saveData:
-					self.pop_msa.to_csv(os.path.join(self.modelPath,'B01003_001E.csv'),index=False)
+					pop_msa.to_csv(os.path.join(self.modelPath,'B01003_001E.csv'),index=False)
+			pop_msa = pop_msa[pop_msa['GEOID'].isin(set(msas['GEOID']))]
+			self.pop_msa = pop_msa
 
 		if self.emp_msa is None:
 			if not os.path.isfile(os.path.join(self.modelPath,'MSA_M2018_dl.csv')):
@@ -387,13 +452,14 @@ class InnoIndicator(Indicator):
 				if self.saveData:
 					empRaw.to_csv(os.path.join(self.modelPath,'MSA_M2018_dl.csv'),index=False)
 			else:
-				empRaw = pd.read_csv(os.path.join(self.modelPath,'MSA_M2018_dl.csv'))
+				empRaw = pd.read_csv(os.path.join(self.modelPath,'MSA_M2018_dl.csv'),low_memory=False)
 			emp = empRaw[(empRaw['OCC_GROUP']=='detailed')&(empRaw['TOT_EMP']!='**')]
-			emp['TOT_EMP'] = emp['TOT_EMP'].astype(float)
+			emp = emp.astype({'TOT_EMP': 'float'})
 			emp = emp[['AREA','OCC_CODE','TOT_EMP']].rename(columns={'AREA':'GEOID'})
 			emp['GEOID'] = emp['GEOID'].astype(str)
 			emp['SELECTED_LEVEL'] = emp['OCC_CODE'].str[:self.occLevel]
 			emp = emp.groupby(['GEOID','SELECTED_LEVEL']).sum()[['TOT_EMP']].reset_index()
+			emp = emp[emp['GEOID'].isin(set(msas['GEOID']))]
 			self.emp_msa = emp
 				
 	def load_OCC_data(self):
@@ -408,7 +474,7 @@ class InnoIndicator(Indicator):
 				if self.saveData:
 					empOccRaw.to_csv(os.path.join(self.modelPath,'national_M2018_dl.csv'),index=False)
 			else:
-				empOccRaw = pd.read_csv(os.path.join(self.modelPath,'national_M2018_dl.csv'))
+				empOccRaw = pd.read_csv(os.path.join(self.modelPath,'national_M2018_dl.csv'),low_memory=False)
 			empOcc = empOccRaw[empOccRaw['OCC_GROUP']=='detailed']
 			empOcc = empOcc[['OCC_CODE','TOT_EMP','OCC_GROUP']]
 			empOcc['SELECTED_LEVEL'] = empOcc['OCC_CODE'].str[:self.occLevel]
@@ -425,7 +491,7 @@ class InnoIndicator(Indicator):
 			if self.saveData:
 				nsf.to_csv(os.path.join(self.modelPath,'nsf20311-tab002.csv'),index=False)
 		else:
-			nsf = pd.read_csv(os.path.join(self.modelPath,'nsf20311-tab002.csv'))
+			nsf = pd.read_csv(os.path.join(self.modelPath,'nsf20311-tab002.csv'),low_memory=False)
 		colnames = [nsf.iloc[:4][c].fillna('').astype(str).sum() for c in nsf.columns]
 		nsf = nsf.iloc[4:]
 		nsf.columns = colnames
@@ -477,7 +543,7 @@ class InnoIndicator(Indicator):
 				if self.saveData:
 					nPats.to_csv(os.path.join(self.modelPath,'nPats.csv'),index=False)
 			else:
-				self.nPats = pd.read_csv(os.path.join(self.modelPath,'nPats.csv'),dtype={'GEOID':str})
+				self.nPats = pd.read_csv(os.path.join(self.modelPath,'nPats.csv'),dtype={'GEOID':str},low_memory=False)
 
 import random
 def main():

@@ -21,7 +21,7 @@ from toolbox import Handler, Indicator
 
 class ProxIndicator(Indicator):
     def setup(self,*args,**kwargs):
-        self.viz_type = kwargs['viz_type_in']
+#        self.viz_type = kwargs['viz_type_in']
         self.indicator_type = kwargs['indicator_type_in']
         self.table_name= kwargs['table_name']
         self.osm_config_file_path='./osm_amenities.json'
@@ -43,7 +43,7 @@ class ProxIndicator(Indicator):
                   'Office': {'employment': 400},
                   'Plaza': {'parks': 1},
                   'Institutional': {'education': 1},
-                  'Retail': {'groceries': 1},
+                  'Retail': {'groceries': 1, 'restaurants': 2},
                   'Park': {'parks': 4},
                   'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
                   'Service': {'parking': 100}}
@@ -350,8 +350,8 @@ class ProxIndicator(Indicator):
 
 def main():
     P= ProxIndicator(name='proximity',  indicator_type_in='heatmap', 
-                     table_name='grasbrook', viz_type_in='heatmap')
-    H = Handler('grasbrook', quietly=False)
+                     table_name='aalto_02', viz_type_in='heatmap')
+    H = Handler('aalto_02', quietly=False)
     H.add_indicator(P)
     
     print(H.geogrid_data())

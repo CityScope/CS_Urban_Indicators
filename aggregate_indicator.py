@@ -16,7 +16,7 @@ class AggregateIndicator(Indicator):
         self.name=kwargs['name']
         self.indicators_to_aggregate=kwargs['indicators_to_aggregate']
         self.agg_fun=kwargs["agg_fun"]
-        self.viz_type=kwargs["viz_type_in"]
+#        self.viz_type=kwargs["viz_type_in"]
     
     def return_indicator(self, geogrid_data):
         values_to_agg=[]

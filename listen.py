@@ -11,8 +11,8 @@ from statistics import mean
 def main():
     # Individual Indicators
     I = InnoIndicator()    
-#    P = ProxIndicator(name='proximity',  viz_type_in='radar', table_name='corktown')
-    P_hm = ProxIndicator(name='proximity',  viz_type_in='heatmap', indicator_type_in='heatmap', table_name='corktown')
+    P = ProxIndicator(name='proximity',   indicator_type_in='numeric', table_name='corktown')
+    P_hm = ProxIndicator(name='proximity',  indicator_type_in='heatmap', table_name='corktown')
     M = MobilityIndicator(name='mobility', table_name='corktown')
     B= BuildingsIndicator(name='buildings',  table_name='corktown')
     
@@ -22,9 +22,12 @@ def main():
                           name='Economic',
                           table_name='corktown')
     
+    for indicator in [I, P, M, B, E]:
+        indicator.viz_type='bar'
+    
     H = Handler('corktown', quietly=False)
     H.add_indicator(I)
-#    H.add_indicator(P)
+    H.add_indicator(P)
     H.add_indicator(P_hm)
     H.add_indicator(M)
     H.add_indicator(E)
@@ -42,7 +45,7 @@ def main():
     
     social_agg_ind=AggregateIndicator(name='Social Well-Being',
                               indicators_to_aggregate=social_aggregation, 
-                              agg_fun=mean, viz_type_in='bar')
+                              agg_fun=mean)
     
     inno_aggregation=[{'indicator': I, 'names': [
             'District-knowledge', 
@@ -51,7 +54,7 @@ def main():
             ]}]
     inno_agg_ind=AggregateIndicator(name='Innovation Potential',
                               indicators_to_aggregate=inno_aggregation, 
-                              agg_fun=mean, viz_type_in='bar')
+                              agg_fun=mean)
     
     mobility_agg=[{'indicator': M, 'names': [
             'Mobility CO2 Performance', 
@@ -59,7 +62,7 @@ def main():
             ]}]
     mobility_agg_ind=AggregateIndicator(name='Sustaiable Mobility',
                               indicators_to_aggregate=mobility_agg, 
-                              agg_fun=mean, viz_type_in='bar')
+                              agg_fun=mean)
     
     economic_agg=[{'indicator': E, 'names': [
             'Average Earnings', 
@@ -67,7 +70,7 @@ def main():
             ]}]
     economic_agg_ind=AggregateIndicator(name='Local Economy',
                               indicators_to_aggregate=economic_agg, 
-                              agg_fun=mean, viz_type_in='bar')
+                              agg_fun=mean)
     
     buildings_agg=[{'indicator': B, 'names': [
             'Commercial Energy Performance', 
@@ -75,7 +78,11 @@ def main():
             ]}]
     buildings_agg_ind=AggregateIndicator(name='Sustainable Buildings',
                               indicators_to_aggregate=buildings_agg, 
-                              agg_fun=mean, viz_type_in='bar')
+                              agg_fun=mean)
+    
+    for indicator in [social_agg_ind, inno_agg_ind, mobility_agg_ind,
+                      economic_agg_ind,buildings_agg_ind ]:
+        indicator.viz_type='radar'
            
     H.add_indicator(social_agg_ind)
     H.add_indicator(inno_agg_ind) 

@@ -201,16 +201,19 @@ class BuildingsIndicator(Indicator):
                 this_bld['SQM']=self.cell_size*self.cell_size*this_bld['NFLOOR']
                 this_bld['NWKER']=this_bld['SQM']/7
                 blds_list.append(this_bld)
-        X_df=pd.DataFrame.from_dict(blds_list)
-        X=X_df[self.comm_model_features]
-        X_df['pred']=self.comm_model.predict(X)
-        X_df['energy_per_worker']=X_df['pred']/X_df['NWKER']
-        avg_energy_per_worker=X_df['energy_per_worker'].mean()
-        print(avg_energy_per_worker)
-        norm_avg_energy_per_worker=(avg_energy_per_worker-self.min_result_per_worker
-                                    )/(self.max_result_per_worker-self.min_result_per_worker)
-        print(norm_avg_energy_per_worker)
-        comm_energy_score=1-max(0, min(1, norm_avg_energy_per_worker)) 
+        if len(blds_list)>0:
+            X_df=pd.DataFrame.from_dict(blds_list)
+            X=X_df[self.comm_model_features]
+            X_df['pred']=self.comm_model.predict(X)
+            X_df['energy_per_worker']=X_df['pred']/X_df['NWKER']
+            avg_energy_per_worker=X_df['energy_per_worker'].mean()
+            print(avg_energy_per_worker)
+            norm_avg_energy_per_worker=(avg_energy_per_worker-self.min_result_per_worker
+                                        )/(self.max_result_per_worker-self.min_result_per_worker)
+            print(norm_avg_energy_per_worker)
+            comm_energy_score=1-max(0, min(1, norm_avg_energy_per_worker)) 
+        else:
+            comm_energy_score=0.5
         self.value_indicators=[{'name': 'Commercial Energy Performance', 'value': comm_energy_score,
                 'viz_type': self.viz_type},
                 {'name': 'Residential Energy Performance', 'value': comm_energy_score,

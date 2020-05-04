@@ -28,7 +28,7 @@ class MobilityIndicator(Indicator):
         lm = LinearRegression()
         co2_model=lm.fit(X, y_co2)
         self.co2_model=co2_model
-        self.co2_min=4
+        self.co2_min=3.5
         self.co2_max=5
         
         
@@ -50,7 +50,7 @@ class MobilityIndicator(Indicator):
         print(co2_normalised)
         self.value_indicators=[{'name': 'Mobility CO2 Performance', 'value': 1-co2_normalised, 
                  'viz_type': self.viz_type},
-                {'name': 'Mobility Health Impacts', 'value': 0.4, 
+                {'name': 'Mobility Health Impacts', 'value': 1-co2_normalised, 
                  'viz_type': self.viz_type}]
         return self.value_indicators
         

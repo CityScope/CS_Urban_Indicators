@@ -2,9 +2,11 @@ import requests
 import webbrowser
 import json
 import Geohash
+import joblib
 from warnings import warn
 from time import sleep
 from collections import defaultdict
+from shapely.geometry import shape
 
 def is_number(s):
 	try:
@@ -407,17 +409,24 @@ class Handler:
 			warn('FAILED TO RETRIEVE URL: '+url)
 		return r
 
-	def geogrid_data(self,include_geometries=False):
+	def geogrid_data(self,include_geometries=False,as_df=False):
 		'''
 		Returns the geogrid data from:
 		http://cityio.media.mit.edu/api/table/table_name/GEOGRIDDATA
 
 		Parameters
 		----------
-		include_geometries : boolean (dafault=False)
+		include_geometries : boolean (default=False)
 			If True it will also add the geometry information for each grid unit.
+		as_df: boolean (default=False)
+			If True, it will return data as a DataFrame.
 		'''
-		return self._get_grid_data(include_geometries=include_geometries)
+		geogrid_data = self._get_grid_data(include_geometries=include_geometries)
+		if as_df:
+			geogrid_data = pd.DataFrame(geogrid_data)
+			if include_geometries:
+				geogrid_data = gpd.GeoDataFrame(geogrid_data.drop('geometry',1),geometry=geogrid_data['geometry'].apply(lambda x: shape(x)))
+		return geogrid_data
 
 	def perform_update(self,grid_hash_id=None,append=True):
 		'''
@@ -490,16 +499,31 @@ class Handler:
 				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
-	def __init__(self,*args,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
+	def __init__(self,*args,model_path=None,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
 		self.name = None
 		self.indicator_type = indicator_type
 		self.viz_type = viz_type
 		self.requires_geometry = requires_geometry
+		self.model_path = model_path
+		self.pickled_model = None
 
 		self.setup(*args,**kwargs)
 		self.load_module()
 		if self.indicator_type in ['heatmap','access']:
 			self.viz_type = None
+
+	def _transform_geogrid_data_to_df(self,geogrid_data):
+		'''
+		Transform the geogrid_data to a DataFrame to be used by a pickled model.
+		'''
+		geogrid_data = pd.DataFrame(geogrid_data)
+		if 'geometry' in geogrid_data.columns:
+			geogrid_data = gpd.GeoDataFrame(geogrid_data.drop('geometry',1),geometry=geogrid_data['geometry'].apply(lambda x: shape(x)))
+		return geogrid_data
+
+	def restructure(self,geogrid_data):
+		geogrid_data_df = self._transform_geogrid_data_to_df(geogrid_data)
+		return geogrid_data_df
 
 	def return_indicator(self,geogrid_data):
 		'''
@@ -507,7 +531,11 @@ class Indicator:
 		When returning a dict follow the format:
 		{'name': 'Sea-Shell','value': 1.00}
 		'''
-		return {}
+		if self.pickled_model is not None:
+			geogrid_data_df = self.restructure(geogrid_data_df)
+			return {'name': self.name, 'value': self.pickled_model.predict(geogrid_data_df)[0]}
+		else:
+			return {}
 
 	def return_baseline(self,geogrid_data):
 		'''
@@ -521,10 +549,7 @@ class Indicator:
 		pass
 
 	def load_module(self):
-		pass
-
-	def train(self):
-		self.load_train_data()
-
-	def load_train_data(self):
-		pass
+		if self.model_path is not None:
+			self.pickled_model = joblib.load(self.model_path)
+			if self.name is None:
+				self.name = self.model_path.split('/')[-1].split('.')[0]

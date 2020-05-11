@@ -17,9 +17,7 @@ def main():
     B= BuildingsIndicator(name='buildings',  table_name='corktown')
     
     # 2nd order  individual indicators 
-    E = EconomicIndicator(grid_to_industries=I.grid_to_industries, 
-                          industries_to_occupations=I.industries_to_occupations,
-                          name='Economic',
+    E = EconomicIndicator(name='Economic',
                           table_name='corktown')
     
     for indicator in [I, P, M, B, E]:

@@ -121,6 +121,7 @@ class EconomicIndicatorBase(Indicator):
         return worker_composition
 
     def get_baseline_employees_by_naics(self,table_name, table_geoids,return_data=False):
+        # Just for organization purposes, this function should be part of DataLoader and just be called from here. (see load_IO_data)
         if self.employees_by_naics is None:
             employees_by_naics={}
             wac=pd.read_csv('./tables/{}/mi_wac_S000_JT00_2017.csv.gz'.format(table_name))
@@ -138,6 +139,7 @@ class EconomicIndicatorBase(Indicator):
             return self.employees_by_naics
 
     def load_output_per_employee(self,return_data=False):
+        # Just for organization purposes, this function should be part of DataLoader and just be called from here. (see load_IO_data)
         if self.output_per_employee_by_naics is None:
             industry_ouput=pd.read_csv('./tables/innovation_data/USA_industry_ouput.csv', skiprows=1)
             industry_ouput=industry_ouput.set_index('2017 NAICS code')
@@ -449,6 +451,7 @@ class DataLoader:
                 match = pd.read_csv(os.path.join(SHAPES_PATH,'ZIP_MSA_matched_2019.csv'),dtype={'ZCTA5CE10':str})
                 emp_zip = emp_zip[emp_zip['ZCTA5CE10'].isin(set(match['ZCTA5CE10']))]
 
+                self.load_IO_data()
                 IO_data = self.IO_data.assign(NAICS = self.IO_data['NAICS'].str[:-4])
                 IO_data.loc[IO_data['NAICS'].isin(['31','32','33']),'NAICS'] = '31-33'
                 IO_data.loc[IO_data['NAICS'].isin(['44','45']),'NAICS'] = '44-45'

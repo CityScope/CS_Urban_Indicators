@@ -15,6 +15,7 @@ from APICalls import ACSCall,patentsViewDownload,load_zipped_excel
 from download_shapeData import SHAPES_PATH
 from toolbox import Handler, Indicator
 import pandas as pd
+import random
 
 ############
 # Classes  #
@@ -60,7 +61,17 @@ class EconomicIndicatorBase(Indicator):
         '''
         THIS FUNCTION SHOULD TRANSLATE BETWEEN GEOGRIDDATA TO NAICS
         '''
-        industry_composition = {'424':100,'813':10,'518':30,'313':50}
+        industries_by_grid_cell=[]
+        for cell in geogrid_data:
+            if cell['name'] in self.types_def:
+                industries_this_cell=flatten_grid_cell_attributes(
+                        type_def=self.types_def[cell['name']], height=cell['height'],
+                        attribute_name='NAICS', area_per_floor=self.geogrid_header['cellSize']**2)
+            else: 
+                industries_this_cell={}
+            industries_by_grid_cell.append(industries_this_cell)
+        industry_composition=collect_grid_cell_counts(industries_by_grid_cell)            
+#        industry_composition = {'424':100,'813':10,'518':30,'313':50}
         return industry_composition
 
     def industries_to_occupations(self,industry_composition,naicsLevel = None):
@@ -556,6 +567,38 @@ class DataLoader:
 #############
 # Functions #
 #############
+                
+def flatten_grid_cell_attributes(type_def, height, attribute_name, area_per_floor):
+    if isinstance(height, list):
+        height=height[1]
+    capacity_per_sqm=1/type_def['sqm_pperson']
+    capacity_per_floor=capacity_per_sqm*area_per_floor
+    grid_cell_total={}
+    if type_def[attribute_name] is not None:
+        floor_assignments=random.choices(range(len(type_def[attribute_name])),
+                                         weights=[group['proportion'] for group in type_def[attribute_name]],
+                                         k=height)
+        for i_g, group in enumerate(type_def[attribute_name]):
+            num_floors=floor_assignments.count(i_g)
+            total_floor_capacity=num_floors*capacity_per_floor
+            for code in group['use']:
+                capacity_this_floor_this_code=total_floor_capacity*group['use'][code]
+                if code in grid_cell_total:
+                    grid_cell_total[code]+=capacity_this_floor_this_code
+                else:
+                    grid_cell_total[code]=capacity_this_floor_this_code
+    return grid_cell_total
+
+def collect_grid_cell_counts(list_of_attr_dicts):
+    aggregated={}
+    for attr_dict in list_of_attr_dicts:
+        for attr in attr_dict:
+            try:
+                aggregated[attr]+=attr_dict[attr]
+            except:
+                aggregated[attr]=attr_dict[attr]
+    return aggregated
+                
 
 def shannon_equitability_score(species_counts):
     diversity=0

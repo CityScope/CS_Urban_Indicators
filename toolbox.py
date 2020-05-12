@@ -65,6 +65,8 @@ class Handler:
 		self.previous_access = None
 
 		self.none_character = 0
+        
+		self.types_def=None
 
 	def check_table(self):
 		'''
@@ -131,6 +133,9 @@ class Handler:
 		else:
 			indicatorName = ('0000'+str(len(self.indicators)+1))[-4:]
 		self.indicators[indicatorName] = I
+		if self.types_def is None:
+			self.get_types_def()
+		I.assign_types_def(self.types_def)
 		if test:
 			geogrid_data = self._get_grid_data()
 			if I.indicator_type not in set(['numeric','heatmap','access']):
@@ -350,9 +355,19 @@ class Handler:
 		return {'numeric':new_values_numeric,'heatmap':new_values_heatmap}
 		
 	def test_indicators(self):
+		self.get_types_def()
 		geogrid_data = self._get_grid_data()
 		for indicator_name in self.indicators:
 			self._new_value(geogrid_data,indicator_name)
+            
+	def get_types_def(self):
+		r = self._get_url(self.cityIO_get_url+'/GEOGRID/properties/types')
+		if r.status_code==200:
+			self.types_def = r.json()
+		else:
+			warn('Cant access cityIO type definitions')
+			sleep(1)
+
 
 	def get_hash(self):
 		'''
@@ -506,6 +521,7 @@ class Indicator:
 		self.requires_geometry = requires_geometry
 		self.model_path = model_path
 		self.pickled_model = None
+		self.types_def=None
 
 		self.setup(*args,**kwargs)
 		self.load_module()
@@ -520,6 +536,9 @@ class Indicator:
 		if 'geometry' in geogrid_data.columns:
 			geogrid_data = gpd.GeoDataFrame(geogrid_data.drop('geometry',1),geometry=geogrid_data['geometry'].apply(lambda x: shape(x)))
 		return geogrid_data
+
+	def assign_types_def(self, types_def):
+		self.types_def=types_def
 
 	def restructure(self,geogrid_data):
 		geogrid_data_df = self._transform_geogrid_data_to_df(geogrid_data)

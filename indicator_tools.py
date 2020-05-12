@@ -22,7 +22,6 @@ import pandas as pd
 
 class EconomicIndicatorBase(Indicator):
     def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
         self.IO_data = None
         self.output_per_employee_by_naics = None
         self.employees_by_naics = None
@@ -48,6 +47,7 @@ class EconomicIndicatorBase(Indicator):
             'CNS19' : '81',
             'CNS20' : '92' 
         }
+        super().__init__(*args,**kwargs)
 
     def load_IO_data(self):
         '''

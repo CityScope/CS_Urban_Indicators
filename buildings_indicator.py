@@ -32,8 +32,8 @@ Usage codes
 """
 
 from toolbox import Handler, Indicator
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+#from sklearn.ensemble import RandomForestRegressor
+#from sklearn.model_selection import train_test_split, RandomizedSearchCV
 import numpy as np
 import json
 import pandas as pd
@@ -41,6 +41,7 @@ from pprint import pprint
 import pickle
 import urllib
 import matplotlib.pyplot as plt
+from indicator_tools import fit_rf_regressor
 
 pba_to_lbcs={
         1: '9000',
@@ -65,72 +66,72 @@ pba_to_lbcs={
         91: '9000'
         }
 
-def fit_rf_regressor(df, cat_cols, numerical_cols, y_col):
-    features=[c for c in numerical_cols]
-    for col in cat_cols:        
-        new_dummies=pd.get_dummies(df[col], prefix=col, drop_first=True)
-        df=pd.concat([df, new_dummies], axis=1)
-        features.extend(new_dummies.columns.tolist())   
-    X=np.array(df[features])
-    y=np.array(df[y_col])
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
-    rfr = RandomForestRegressor(random_state = 0, n_estimators=100)    
-#    pprint(rfr.get_params())
-    
-# =============================================================================
-#     Randomised Grid Search for best hyper-parameters
-# =============================================================================
-# Number of features to consider at every split
-    max_features = ['auto', 'sqrt']
-    # Maximum number of levels in tree
-    max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-    max_depth.append(None)
-    # Minimum number of samples required to split a node
-    min_samples_split = [2, 5, 10]
-    # Minimum number of samples required at each leaf node
-    min_samples_leaf = [1, 2, 4]
-    # Method of selecting samples for training each tree
-    bootstrap = [True, False]
-    # Create the random grid
-    random_grid = {
-                   'max_features': max_features,
-                   'max_depth': max_depth,
-                   'min_samples_split': min_samples_split,
-                   'min_samples_leaf': min_samples_leaf,
-                   'bootstrap': bootstrap}
-
-    # Create the random search object
-    rfr_random_search = RandomizedSearchCV(estimator = rfr, param_distributions = random_grid,
-                                   n_iter = 200, cv = 5, verbose=1, random_state=0, 
-                                   refit=True)
-    
-    rfr_random_search.fit(X_train, y_train)
-    rfr_winner=rfr_random_search.best_estimator_
-    best_params=rfr_random_search.best_params_
-    importances = rfr_winner.feature_importances_
-    std = np.std([tree.feature_importances_ for tree in rfr_winner.estimators_],
-                 axis=0)
-    indices = np.argsort(importances)[::-1]
-    print("Feature ranking:")
-    
-    for f in range(len(features)):
-        print("%d. %s (%f)" % (f + 1, features[indices[f]], importances[indices[f]]))
-    
-    # Plot the feature importances of the forest
-    plt.figure(figsize=(16, 9))
-    plt.title("Feature importances")
-    plt.bar(range(len(features)), importances[indices],
-           color="r", yerr=std[indices], align="center")
-    plt.xticks(range(len(features)), [features[i] for i in indices], rotation=90, fontsize=15)
-    plt.xlim([-1, len(features)])
-    plt.show()
-    
-    pred_test=rfr_winner.predict(X_test)
-    plt.figure(figsize=(16, 9))
-    plt.scatter(y_test, pred_test)
-    plt.xlabel("Actual")
-    plt.ylabel("Predicted")
-    plt.show()
+#def fit_rf_regressor(df, cat_cols, numerical_cols, y_col):
+#    features=[c for c in numerical_cols]
+#    for col in cat_cols:        
+#        new_dummies=pd.get_dummies(df[col], prefix=col, drop_first=True)
+#        df=pd.concat([df, new_dummies], axis=1)
+#        features.extend(new_dummies.columns.tolist())   
+#    X=np.array(df[features])
+#    y=np.array(df[y_col])
+#    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+#    rfr = RandomForestRegressor(random_state = 0, n_estimators=100)    
+##    pprint(rfr.get_params())
+#    
+## =============================================================================
+##     Randomised Grid Search for best hyper-parameters
+## =============================================================================
+## Number of features to consider at every split
+#    max_features = ['auto', 'sqrt']
+#    # Maximum number of levels in tree
+#    max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+#    max_depth.append(None)
+#    # Minimum number of samples required to split a node
+#    min_samples_split = [2, 5, 10]
+#    # Minimum number of samples required at each leaf node
+#    min_samples_leaf = [1, 2, 4]
+#    # Method of selecting samples for training each tree
+#    bootstrap = [True, False]
+#    # Create the random grid
+#    random_grid = {
+#                   'max_features': max_features,
+#                   'max_depth': max_depth,
+#                   'min_samples_split': min_samples_split,
+#                   'min_samples_leaf': min_samples_leaf,
+#                   'bootstrap': bootstrap}
+#
+#    # Create the random search object
+#    rfr_random_search = RandomizedSearchCV(estimator = rfr, param_distributions = random_grid,
+#                                   n_iter = 200, cv = 5, verbose=1, random_state=0, 
+#                                   refit=True)
+#    
+#    rfr_random_search.fit(X_train, y_train)
+#    rfr_winner=rfr_random_search.best_estimator_
+#    best_params=rfr_random_search.best_params_
+#    importances = rfr_winner.feature_importances_
+#    std = np.std([tree.feature_importances_ for tree in rfr_winner.estimators_],
+#                 axis=0)
+#    indices = np.argsort(importances)[::-1]
+#    print("Feature ranking:")
+#    
+#    for f in range(len(features)):
+#        print("%d. %s (%f)" % (f + 1, features[indices[f]], importances[indices[f]]))
+#    
+#    # Plot the feature importances of the forest
+#    plt.figure(figsize=(16, 9))
+#    plt.title("Feature importances")
+#    plt.bar(range(len(features)), importances[indices],
+#           color="r", yerr=std[indices], align="center")
+#    plt.xticks(range(len(features)), [features[i] for i in indices], rotation=90, fontsize=15)
+#    plt.xlim([-1, len(features)])
+#    plt.show()
+#    
+#    pred_test=rfr_winner.predict(X_test)
+#    plt.figure(figsize=(16, 9))
+#    plt.scatter(y_test, pred_test)
+#    plt.xlabel("Actual")
+#    plt.ylabel("Predicted")
+#    plt.show()
     
     
 class BuildingsIndicator(Indicator):

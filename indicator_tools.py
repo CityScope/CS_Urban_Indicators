@@ -514,10 +514,39 @@ class DataLoader:
                 nsf.to_csv(os.path.join(self.data_path,'nsf20311-tab002.csv'),index=False)
         else:
             nsf = pd.read_csv(os.path.join(self.data_path,'nsf20311-tab002.csv'),low_memory=False)
-        colnames = [nsf.iloc[:4][c].fillna('').astype(str).sum() for c in nsf.columns]
-        nsf = nsf.iloc[4:]
+        colnames = []
+        h = ''
+        for c1,c2 in (zip(*nsf.iloc[2:4].values)):
+            c1 = str(c1)
+            c2 = str(c2)
+            if c1!='nan':
+                h = c1
+            if (c1=='nan')&(c2=='nan'):
+                colnames.append(c1)
+            else:
+                if c2!='nan':
+                    colnames.append(h+' - '+c2)
+                else:
+                    colnames.append(h)
         nsf.columns = colnames
-        self.RnD = nsf[['NAICS code','Domestic R&D performanceTotal']]
+        nsf = nsf.iloc[4:]
+        nsf = nsf[[c for c in nsf.columns if c!='nan']]
+
+        nsf = nsf[nsf['NAICS code']!='–']
+        nsf = nsf[nsf['NAICS code']!='\xa0']
+
+        selected = [
+            '311','312','313–16','321','322','323','324',
+            '325','326','327','331','332','333','334',
+            '335','336','337','339','454111–12',
+            '21','22','42','48–49','511','517','518',
+            'other 51','52','533','other 53','5413','5415','5417','other 54','621–23'
+        ]
+        nsf = nsf[nsf['NAICS code'].isin(selected)]
+        nsf.loc[nsf['NAICS code']=='454111–12','NAICS code'] = '4541'
+        nsf.loc[nsf['Worldwide R&D performance - Paid for by the company']=='11,873 - 12,096'] = 11985
+        nsf = nsf.assign(RnD_investment = 10e6*nsf['Domestic R&D performance - Paid for by the company'].astype(float))
+        self.RnD = nsf[['NAICS code','RnD_investment']]
 
 
     def load_patent_data(self,pop_th=100000):

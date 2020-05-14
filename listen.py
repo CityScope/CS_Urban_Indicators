@@ -1,6 +1,6 @@
 from toolbox import Handler, Indicator
 from proximity_indicator import ProxIndicator
-#from innovation_indicator import InnoIndicator
+from innovation_indicator import InnoIndicator
 from mobility_indicator import MobilityIndicator
 from aggregate_indicator import AggregateIndicator
 from economic_indicator import EconomicIndicator
@@ -10,7 +10,7 @@ from statistics import mean
 
 def main():
     # Individual Indicators
-#    I = InnoIndicator()    
+    I = InnoIndicator()    
     P = ProxIndicator(name='proximity',   indicator_type_in='numeric', table_name='corktown')
     P_hm = ProxIndicator(name='proximity',  indicator_type_in='heatmap', table_name='corktown')
     M = MobilityIndicator(name='mobility', table_name='corktown')
@@ -26,7 +26,7 @@ def main():
         indicator.viz_type='bar'
     
     H = Handler('corktown', quietly=False)
-#    H.add_indicator(I)
+    H.add_indicator(I)
     H.add_indicator(P)
     H.add_indicator(P_hm)
     H.add_indicator(M)
@@ -47,14 +47,14 @@ def main():
                               indicators_to_aggregate=social_aggregation, 
                               agg_fun=mean)
     
-#    inno_aggregation=[{'indicator': I, 'names': [
-#            'District-knowledge', 
-#            'City-skills',
-#            'Region-funding'
-#            ]}]
-#    inno_agg_ind=AggregateIndicator(name='Innovation Potential',
-#                              indicators_to_aggregate=inno_aggregation, 
-#                              agg_fun=mean)
+    inno_aggregation=[{'indicator': I, 'names': [
+            'District-knowledge', 
+            'City-skills',
+            'Region-funding'
+            ]}]
+    inno_agg_ind=AggregateIndicator(name='Innovation Potential',
+                              indicators_to_aggregate=inno_aggregation, 
+                              agg_fun=mean)
     
     mobility_agg=[{'indicator': M, 'names': [
             'Mobility CO2 Performance', 
@@ -81,13 +81,13 @@ def main():
                               agg_fun=mean)
     
     for indicator in [social_agg_ind, 
-#                      inno_agg_ind, 
+                      inno_agg_ind, 
                       mobility_agg_ind,
                       economic_agg_ind,buildings_agg_ind ]:
         indicator.viz_type='radar'
            
     H.add_indicator(social_agg_ind)
-#    H.add_indicator(inno_agg_ind) 
+    H.add_indicator(inno_agg_ind) 
     H.add_indicator(mobility_agg_ind) 
     H.add_indicator(economic_agg_ind) 
     H.add_indicator(buildings_agg_ind) 

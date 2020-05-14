@@ -35,7 +35,12 @@ class MobilityIndicator(Indicator):
                 all_df, cat_cols=['future_mobility'], 
                 numerical_cols=numerical_cols, 
                 y_col='avg_co2', n_estimators=10)
-#        co2_model=lm.fit(X, y_co2)
+        self.max_co2=5
+        self.min_co2=3.5
+        self.pa_model, self.pa_model= fit_rf_regressor(
+                all_df, cat_cols=['future_mobility'], 
+                numerical_cols=numerical_cols, 
+                y_col='avg_co2', n_estimators=10)
         self.max_co2=5
         self.min_co2=3.5
         model_object={'model': self.co2_model, 'features': self.co2_model_features,

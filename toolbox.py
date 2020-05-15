@@ -569,28 +569,26 @@ class Handler:
 				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
-	def __init__(self,*args,table_name=None,model_path=None,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
-		try:
-			self.name = kwargs['name']
-		except:
-			self.name = None
-		self.indicator_type = indicator_type
-		self.viz_type = viz_type
-		self.requires_geometry = requires_geometry
-		self.model_path = model_path
+	def __init__(self,*args,**kwargs):
+		self.name = None
+		self.indicator_type = 'numeric'
+		self.viz_type = 'radar'
+		self.requires_geometry = False
+		self.model_path = None
 		self.pickled_model = None
 		self.types_def=None
 		self.geogrid_header=None
 		self.is_composite = False
-
-		self.setup(*args,**kwargs)
-		self.load_module()
 		self.tableHandler = None
+		for k in ['name','model_path','requires_geometry','indicator_type','viz_type']:
+			if k in kwargs.keys():
+				self.name = kwargs[k]
 		if self.indicator_type in ['heatmap','access']:
 			self.viz_type = None
-
-		if table_name is not None:
-			self.link_table(table_name)
+		self.setup(*args,**kwargs)
+		self.load_module()
+		if 'table_name' is kwargs.keys():
+			self.link_table(kwargs['table_name'])
 
 	def _transform_geogrid_data_to_df(self,geogrid_data):
 		'''

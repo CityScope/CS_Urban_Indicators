@@ -116,6 +116,14 @@ class Handler:
 		'''
 		return self.indicators[name]
 
+	def add_indicators(self,indicator_list,test=True):
+		'''
+		Same as add_indicator but it takes in a list of Indicator objects
+		'''
+		for I in indicator_list:
+			self.add_indicator(I,test=test)
+
+
 	def add_indicator(self,I,test=True):
 		'''
 		Adds indicator to handler object.
@@ -134,13 +142,19 @@ class Handler:
 		else:
 			indicatorName = ('0000'+str(len(self.indicators)+1))[-4:]
 		I.link_table(self)
+		if indicatorName in self.indicators.keys():
+			warn('Indicator {} already exists and will be overwritten'.format(indicatorName))
 		self.indicators[indicatorName] = I
 		if test:
 			geogrid_data = self._get_grid_data()
 			if I.indicator_type not in set(['numeric','heatmap','access']):
 				raise NameError('Indicator type should either be numeric, heatmap, or access. Current type: '+str(I.indicator_type))
 			try:
-				self._new_value(geogrid_data,indicatorName)
+				if I.is_composite:
+					indicator_values = self.get_indicator_values(include_composite=False)
+					self._new_value(indicator_values,indicatorName)
+				else:
+					self._new_value(geogrid_data,indicatorName)
 			except:
 				warn('Indicator not working: '+indicatorName)
 
@@ -156,7 +170,11 @@ class Handler:
 		'''
 		geogrid_data = self._get_grid_data()
 		I = self.indicators[indicator_name]
-		return I.return_indicator(geogrid_data)
+		if I.is_composite:
+			indicator_values = self.get_indicator_values(include_composite=False)
+			return I.return_indicator(indicator_values)
+		else:
+			return I.return_indicator(geogrid_data)
 
 	def _format_geojson(self,new_value):
 		'''
@@ -214,7 +232,7 @@ class Handler:
 
 	def _new_value(self,geogrid_data,indicator_name):
 		'''
-		Formats the result of the indicator's return_indicator function.
+		Formats the result of the indicator's return_indicator function.a
 
 		If indicator is numeric, the result is formatted as:
 			[
@@ -279,6 +297,7 @@ class Handler:
 					new_value['viz_type'] = I.viz_type
 				return [new_value]
 
+
 	def _combine_heatmap_values(self,new_values_heatmap):
 		'''
 		Combines a list of heatmap features (formatted as geojsons) into one cityIO GeoJson
@@ -307,6 +326,27 @@ class Handler:
 
 		return {'type':'FeatureCollection','properties':all_properties,'features':combined_features}
 
+	def get_indicator_values(self,include_composite=False):
+		'''
+		Calculates the current values of the indicators.
+		Used for developing a composite indicator
+		Only for numeric indicators
+		'''
+		geogrid_data = self.get_geogrid_data()
+		new_values_numeric = []
+		for indicator_name in self.indicators:
+			I = self.indicators[indicator_name]
+			if (I.indicator_type not in ['access','heatmap'])&(not I.is_composite):
+				new_values_numeric += self._new_value(geogrid_data,indicator_name)
+		indicator_values = {i['name']:i['value'] for i in new_values_numeric}
+		if include_composite:
+			for indicator_name in self.indicators:
+				I = self.indicators[indicator_name]
+				if (I.indicator_type not in ['access','heatmap'])&(I.is_composite):
+					new_values_numeric += self._new_value(indicator_values,indicator_name)
+		indicator_values = {i['name']:i['value'] for i in new_values_numeric}
+		return indicator_values
+
 	def update_package(self,geogrid_data=None,append=False):
 		'''
 		Returns the package that will be posted in CityIO.
@@ -330,12 +370,19 @@ class Handler:
 
 		for indicator_name in self.indicators:
 			try:
-				if self.indicators[indicator_name].indicator_type in ['access','heatmap']:
+				I = self.indicators[indicator_name]
+				if I.indicator_type in ['access','heatmap']:
 					new_values_heatmap += self._new_value(geogrid_data,indicator_name)
-				else:
+				elif not I.is_composite:
 					new_values_numeric += self._new_value(geogrid_data,indicator_name)
 			except:
 				warn('Indicator not working:'+str(indicator_name))
+
+		for indicator_name in self.indicators:
+			I = self.indicators[indicator_name]
+			if (I.is_composite)&(I.indicator_type not in ['access','heatmap']):
+				indicator_values = {i['name']:i['value'] for i in new_values_numeric}
+				new_values_numeric += self._new_value(indicator_values,indicator_name)
 		
 		if append:
 			if len(new_values_numeric)!=0:
@@ -356,7 +403,11 @@ class Handler:
 	def test_indicators(self):
 		geogrid_data = self._get_grid_data()
 		for indicator_name in self.indicators:
-			self._new_value(geogrid_data,indicator_name)
+			if I[indicator_name].is_composite:
+				indicator_values = self.get_indicator_values(include_composite=False)
+				self._new_value(indicator_values,indicator_name)
+			else:
+				self._new_value(geogrid_data,indicator_name)
             
 	def get_geogrid_props(self):
 		'''
@@ -518,7 +569,10 @@ class Handler:
 
 class Indicator:
 	def __init__(self,*args,table_name=None,model_path=None,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
-		self.name = None
+		try:
+			self.name = kwargs['name']
+		except:
+			self.name = None
 		self.indicator_type = indicator_type
 		self.viz_type = viz_type
 		self.requires_geometry = requires_geometry
@@ -526,6 +580,7 @@ class Indicator:
 		self.pickled_model = None
 		self.types_def=None
 		self.geogrid_header=None
+		self.is_composite = False
 
 		self.setup(*args,**kwargs)
 		self.load_module()
@@ -635,3 +690,13 @@ class Indicator:
 			self.pickled_model = joblib.load(self.model_path)
 			if self.name is None:
 				self.name = self.model_path.split('/')[-1].split('.')[0]
+
+
+class CompositeIndicator(Indicator):
+    def setup(self,compose_function,*args,**kwargs):
+        self.compose_function = compose_function
+        self.is_composite = True
+    
+    def return_indicator(self, indicator_values):
+        value = self.compose_function(indicator_values)
+        return [{'name': self.name, 'value': value, 'viz_type': self.viz_type}]

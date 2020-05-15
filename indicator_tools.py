@@ -250,11 +250,23 @@ class DataLoader:
         if return_data:
             return self.IO_data
 
-    def load_onet_data(self):
+    def load_onet_data(self,include_employment=True):
         '''
         Loads skills and knowledge datasets from ONET.
         For more information see:
         https://www.onetcenter.org/database.html#all-files
+
+        Parameters
+        ----------
+        include_employment: boolean (default=True)
+            If False it will only load data on skills and knoledge by occupation:
+                skills
+                skills_names
+                knowledge
+                knowledge_names
+            If True it will aggregate to msas and zips:
+                msa_skills
+                zip_knowledge
 
         '''
         onet_url = 'https://www.onetcenter.org/dl_files/database/db_24_2_excel/'
@@ -269,7 +281,8 @@ class DataLoader:
             skills = skills[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()
             self.skills = skills
             self.skill_names = skillsRaw[['Element ID','Element Name']].drop_duplicates()
-            self.msa_skills     = self._aggregate_to_GEO(skills,geoType='MSA')
+            if include_employment:
+                self.msa_skills = self._aggregate_to_GEO(skills,geoType='MSA')
             
             
             if os.path.isfile(os.path.join(self.data_path,'Knowledge.xlsx')):
@@ -282,7 +295,8 @@ class DataLoader:
             knowledge = knowledge[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()               
             self.knowledge = knowledge
             self.knowledge_names = knowledgeRaw[['Element ID','Element Name']].drop_duplicates()
-            self.zip_knowledge   = self._aggregate_to_GEO(knowledge,geoType='ZIP')
+            if include_employment:
+                self.zip_knowledge = self._aggregate_to_GEO(knowledge,geoType='ZIP')
 
 
     def _aggregate_to_GEO(self,skills,geoType='MSA',pivot=True):
@@ -514,10 +528,39 @@ class DataLoader:
                 nsf.to_csv(os.path.join(self.data_path,'nsf20311-tab002.csv'),index=False)
         else:
             nsf = pd.read_csv(os.path.join(self.data_path,'nsf20311-tab002.csv'),low_memory=False)
-        colnames = [nsf.iloc[:4][c].fillna('').astype(str).sum() for c in nsf.columns]
-        nsf = nsf.iloc[4:]
+        colnames = []
+        h = ''
+        for c1,c2 in (zip(*nsf.iloc[2:4].values)):
+            c1 = str(c1)
+            c2 = str(c2)
+            if c1!='nan':
+                h = c1
+            if (c1=='nan')&(c2=='nan'):
+                colnames.append(c1)
+            else:
+                if c2!='nan':
+                    colnames.append(h+' - '+c2)
+                else:
+                    colnames.append(h)
         nsf.columns = colnames
-        self.RnD = nsf[['NAICS code','Domestic R&D performanceTotal']]
+        nsf = nsf.iloc[4:]
+        nsf = nsf[[c for c in nsf.columns if c!='nan']]
+
+        nsf = nsf[nsf['NAICS code']!='–']
+        nsf = nsf[nsf['NAICS code']!='\xa0']
+
+        selected = [
+            '311','312','313–16','321','322','323','324',
+            '325','326','327','331','332','333','334',
+            '335','336','337','339','454111–12',
+            '21','22','42','48–49','511','517','518',
+            'other 51','52','533','other 53','5413','5415','5417','other 54','621–23'
+        ]
+        nsf = nsf[nsf['NAICS code'].isin(selected)]
+        nsf.loc[nsf['NAICS code']=='454111–12','NAICS code'] = '4541'
+        nsf.loc[nsf['Worldwide R&D performance - Paid for by the company']=='11,873 - 12,096'] = 11985
+        nsf = nsf.assign(RnD_investment = 10e6*nsf['Domestic R&D performance - Paid for by the company'].astype(float))
+        self.RnD = nsf[['NAICS code','RnD_investment']]
 
 
     def load_patent_data(self,pop_th=100000):

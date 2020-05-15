@@ -575,10 +575,10 @@ class DataLoader:
 def flatten_grid_cell_attributes(type_def, height, attribute_name, area_per_floor):
     if isinstance(height, list):
         height=height[1]
-    capacity_per_sqm=1/type_def['sqm_pperson']
-    capacity_per_floor=capacity_per_sqm*area_per_floor
     grid_cell_total={}
     if type_def[attribute_name] is not None:
+        capacity_per_sqm=1/type_def['sqm_pperson']
+        capacity_per_floor=capacity_per_sqm*area_per_floor
         floor_assignments=random.choices(range(len(type_def[attribute_name])),
                                          weights=[group['proportion'] for group in type_def[attribute_name]],
                                          k=height)

@@ -40,7 +40,6 @@ The following command also makes sure that the current directory is mounted to t
 ```
 
 
-
 ## Accessibility indicator format
 
 The Handler class combines the results of all heatmaps indicator into one consolidated cityio-geojson with the following format:
@@ -156,6 +155,77 @@ H = Handler('corktown', quietly=False)
 H.add_indicator(div)
 H.listen()
 ```
+
+
+## Custom Composite indicator (tldr)
+
+Let's create an indicator that averages Innovation Potential, Mobility Inmpact, and Economic Impact. We use the `CompositeIndicator` class for this. This class takes an aggregate function as input. This function takes in the result of `Handler.get_indicator_values()` as input and returns a number. If you want to have more control over what the `CompositeIndicator` does you can always extend the class.
+
+```
+from toolbox import Handler, CompositeIndicator
+from random_indicator import RandomIndicator
+
+def innovation_average(indicator_values):
+    avg = (indicator_values['Innovation Potential']+indicator_values['Mobility Impact']+indicator_values['Economic Impact'])/3
+    return avg
+
+H = Handler('corktown')
+R = RandomIndicator()
+avg_I = CompositeIndicator(innovation_average,name='Composite')
+H.add_indicators([R,avg_I])
+```
+
+## Custom Composite indicator
+
+Let's create an indicator that averages Innovation Potential, Mobility Inmpact, and Economic Impact.
+First, we load the RandomIndicator and pass it to a Handler.
+
+```
+from toolbox import Handler, CompositeIndicator
+from random_indicator import RandomIndicator
+
+H = Handler('corktown')
+R = RandomIndicator()
+H.add_indicator(R)
+```
+
+To develop the aggregate function, we use the `get_indicator_values()` function from the handler class. We need to make sure our aggregate function works with that the Handler is returning:
+```
+indicator_values = H.get_indicator_values()
+```
+
+In this case, the `indicator_values` is a dictionary with the following elements:
+```
+{
+	'Social Wellbeing': 0.9302328967423512,
+	'Environmental Impact': 0.8229183561962108,
+	'Mobility Impact': 0.3880460148817071,
+	'Economic Impact': 0.13782084927373295,
+	'Innovation Potential': 0.8913823890081203
+}
+```
+
+We do not need to use all of the values returned by the Handler for our indicator. \
+
+Next, we write our simple average function that takes `indicator_values` as input and returns a value, and pass it as an argument to the `CompositeIndicator` class constructor. 
+```
+def innovation_average(indicator_values):
+    avg = (indicator_values['Innovation Potential']+indicator_values['Mobility Impact']+indicator_values['Economic Impact'])/3
+    return avg
+
+avg_I = CompositeIndicator(innovation_average,name='Composite')
+```
+
+To make sure it is running, we can test it as usual:
+```
+avg_I.return_indicator(indicator_values)
+```
+
+We finally add it to the Handler:
+```
+H.add_indicator(avg_I)
+```
+
 
 ## Custom accessibility indicator
 

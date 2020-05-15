@@ -272,30 +272,46 @@ class DataLoader:
         onet_url = 'https://www.onetcenter.org/dl_files/database/db_24_2_excel/'
         if (self.skills is None)|(self.knowledge is None):
             if os.path.isfile(os.path.join(self.data_path,'Skills.xlsx')):
+                if not self.quietly:
+                    print('Loading skillsRaw from file',os.path.join(self.data_path,'Skills.xlsx'))
                 skillsRaw = pd.read_excel(os.path.join(self.data_path,'Skills.xlsx'))
             else:
+                if not self.quietly:
+                    print('Loading skillsRaw from url',onet_url+'Skills.xlsx')
                 skillsRaw = pd.read_excel(onet_url+'Skills.xlsx')
                 if self.saveData:
                     skillsRaw.to_excel(os.path.join(self.data_path,'Skills.xlsx'),index=False)
+            if not self.quietly:
+                print('Grouping up skills')
             skills = self.group_up_skills(skillsRaw)
             skills = skills[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()
             self.skills = skills
             self.skill_names = skillsRaw[['Element ID','Element Name']].drop_duplicates()
             if include_employment:
+                if not self.quietly:
+                    print('Getting employment by msa by skill')
                 self.msa_skills = self._aggregate_to_GEO(skills,geoType='MSA')
             
             
             if os.path.isfile(os.path.join(self.data_path,'Knowledge.xlsx')):
+                if not self.quietly:
+                    print('Loading knowledgeRaw from file',os.path.join(self.data_path,'Knowledge.xlsx'))
                 knowledgeRaw = pd.read_excel(os.path.join(self.data_path,'Knowledge.xlsx'))
             else:
+                if not self.quietly:
+                    print('Loading knowledgeRaw from url',onet_url+'Knowledge.xlsx')
                 knowledgeRaw = pd.read_excel(onet_url+'Knowledge.xlsx')
                 if self.saveData:
                     knowledgeRaw.to_excel(os.path.join(self.data_path,'Knowledge.xlsx'),index=False)
+            if not self.quietly:
+                print('Grouping up knowledge')
             knowledge = self.group_up_skills(knowledgeRaw)
             knowledge = knowledge[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()               
             self.knowledge = knowledge
             self.knowledge_names = knowledgeRaw[['Element ID','Element Name']].drop_duplicates()
             if include_employment:
+                if not self.quietly:
+                    print('Getting employment by zipcode by knowledge')
                 self.zip_knowledge = self._aggregate_to_GEO(knowledge,geoType='ZIP')
 
 

@@ -3,6 +3,7 @@ import webbrowser
 import json
 import Geohash
 import joblib
+import numpy as np
 from warnings import warn
 from time import sleep
 from collections import defaultdict
@@ -693,10 +694,18 @@ class Indicator:
 
 
 class CompositeIndicator(Indicator):
-    def setup(self,compose_function,*args,**kwargs):
-        self.compose_function = compose_function
-        self.is_composite = True
-    
-    def return_indicator(self, indicator_values):
-        value = self.compose_function(indicator_values)
-        return [{'name': self.name, 'value': value, 'viz_type': self.viz_type}]
+	def setup(self,compose_function,selected_indicators=[],*args,**kwargs):
+		self.compose_function = compose_function
+		self.is_composite = True
+		self.selected_indicators = selected_indicators
+
+	def return_indicator(self, indicator_values):
+		if len(self.selected_indicators)!=0:
+			indicator_values = {k:indicator_values[k] for k in indicator_values if k in self.selected_indicators}
+		try:
+			value = self.compose_function(indicator_values)
+		except:
+			indicator_values = np.array([v for v in indicator_values.values()])
+			value = self.compose_function(indicator_values)
+		return [{'name': self.name, 'value': value, 'viz_type': self.viz_type}]
+

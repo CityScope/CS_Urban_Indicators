@@ -163,7 +163,7 @@ Let's create an indicator that averages Innovation Potential, Mobility Inmpact, 
 
 ```
 from toolbox import Handler, CompositeIndicator
-from random_indicator import RandomIndicator
+from examples import RandomIndicator
 
 def innovation_average(indicator_values):
     avg = (indicator_values['Innovation Potential']+indicator_values['Mobility Impact']+indicator_values['Economic Impact'])/3
@@ -175,6 +175,19 @@ avg_I = CompositeIndicator(innovation_average,name='Composite')
 H.add_indicators([R,avg_I])
 ```
 
+You can also pass it a pre-existing function, such as `np.mean`. 
+```
+from toolbox import Handler, CompositeIndicator
+from examples import RandomIndicator
+import numpy as np
+
+H = Handler('corktown')
+R = RandomIndicator()
+avg_I = CompositeIndicator(np.mean,selected_indicators=['Innovation Potential','Mobility Impact','Economic Impact'],name='Composite')
+H.add_indicators([R,avg_I])
+```
+
+
 ## Custom Composite indicator
 
 Let's create an indicator that averages Innovation Potential, Mobility Inmpact, and Economic Impact.
@@ -182,7 +195,7 @@ First, we load the RandomIndicator and pass it to a Handler.
 
 ```
 from toolbox import Handler, CompositeIndicator
-from random_indicator import RandomIndicator
+from examples import RandomIndicator
 
 H = Handler('corktown')
 R = RandomIndicator()

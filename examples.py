@@ -58,7 +58,6 @@ class RandomIndicator(Indicator):
 
 
 from numpy import mean
-from numpy.random import random
 class Noise(Indicator):
     '''
     Example of Noise heatmap indicator for points centered in each grid cell.
@@ -84,7 +83,7 @@ class Noise(Indicator):
             lat,lon = zip(*cell['geometry']['coordinates'][0])
             lat,lon = mean(lat),mean(lon)
             feature['geometry'] = {'coordinates': [lat,lon],'type': 'Point'}
-            feature['properties'] = {self.name:random()}
+            feature['properties'] = {self.name:random.random()}
             features.append(feature)
         out = {'type':'FeatureCollection','features':features}
         return out

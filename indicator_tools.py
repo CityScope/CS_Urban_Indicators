@@ -281,7 +281,8 @@ class DataLoader:
             skills = skills[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()
             self.skills = skills
             self.skill_names = skillsRaw[['Element ID','Element Name']].drop_duplicates()
-            self.msa_skills     = self._aggregate_to_GEO(skills,geoType='MSA')
+            if include_employment:
+                self.msa_skills = self._aggregate_to_GEO(skills,geoType='MSA')
             
             
             if os.path.isfile(os.path.join(self.data_path,'Knowledge.xlsx')):
@@ -294,7 +295,8 @@ class DataLoader:
             knowledge = knowledge[['SELECTED_LEVEL','Element ID','Data Value']].drop_duplicates()               
             self.knowledge = knowledge
             self.knowledge_names = knowledgeRaw[['Element ID','Element Name']].drop_duplicates()
-            self.zip_knowledge   = self._aggregate_to_GEO(knowledge,geoType='ZIP')
+            if include_employment:
+                self.zip_knowledge = self._aggregate_to_GEO(knowledge,geoType='ZIP')
 
 
     def _aggregate_to_GEO(self,skills,geoType='MSA',pivot=True):

@@ -67,6 +67,7 @@ class Handler:
 		self.none_character = 0
         
 		self.geogrid_props=None
+		self.get_geogrid_props()
         
 	def check_table(self):
 		'''
@@ -132,10 +133,8 @@ class Handler:
 			indicatorName = I.name
 		else:
 			indicatorName = ('0000'+str(len(self.indicators)+1))[-4:]
+		I.link_table(self)
 		self.indicators[indicatorName] = I
-		if self.geogrid_props is None:
-			self.get_geogrid_props()
-		I.assign_geogrid_props(self.geogrid_props)
 		if test:
 			geogrid_data = self._get_grid_data()
 			if I.indicator_type not in set(['numeric','heatmap','access']):
@@ -315,7 +314,7 @@ class Handler:
 		Parameters
 		----------
 		geogrid_data : dict (optional)
-			Result of self.geogrid_data(). If not provided, it will be retrieved. 
+			Result of self.get_geogrid_data(). If not provided, it will be retrieved. 
 		append : boolean (dafault=False)
 			If True, it will append the new indicators to whatever is already there.
 
@@ -355,18 +354,22 @@ class Handler:
 		return {'numeric':new_values_numeric,'heatmap':new_values_heatmap}
 		
 	def test_indicators(self):
-		self.get_geogrid_props()
 		geogrid_data = self._get_grid_data()
 		for indicator_name in self.indicators:
 			self._new_value(geogrid_data,indicator_name)
             
 	def get_geogrid_props(self):
-		r = self._get_url(self.cityIO_get_url+'/GEOGRID/properties')
-		if r.status_code==200:
-			self.geogrid_props = r.json()
-		else:
-			warn('Cant access cityIO type definitions')
-			sleep(1)
+		'''
+		Gets the GEOGRID properties defined for the table.
+		These properties are not dynamic and include things such as the NAICS and LBCS composition of each lego type.
+		'''
+		if self.geogrid_props is None:
+			r = self._get_url(self.cityIO_get_url+'/GEOGRID/properties')
+			if r.status_code==200:
+				self.geogrid_props = r.json()
+			else:
+				warn('Cant access cityIO type definitions')
+				sleep(1)
 
 
 	def get_hash(self):
@@ -424,7 +427,7 @@ class Handler:
 			warn('FAILED TO RETRIEVE URL: '+url)
 		return r
 
-	def geogrid_data(self,include_geometries=False,as_df=False):
+	def get_geogrid_data(self,include_geometries=False,as_df=False):
 		'''
 		Returns the geogrid data from:
 		http://cityio.media.mit.edu/api/table/table_name/GEOGRIDDATA
@@ -526,6 +529,7 @@ class Indicator:
 
 		self.setup(*args,**kwargs)
 		self.load_module()
+		self.tableHandler = None
 		if self.indicator_type in ['heatmap','access']:
 			self.viz_type = None
 
@@ -538,9 +542,63 @@ class Indicator:
 			geogrid_data = gpd.GeoDataFrame(geogrid_data.drop('geometry',1),geometry=geogrid_data['geometry'].apply(lambda x: shape(x)))
 		return geogrid_data
 
-	def assign_geogrid_props(self, geogrid_props):
-		self.types_def=geogrid_props['types']
-		self.geogrid_header=geogrid_props['header']
+	def link_table(self,table_name):
+		'''
+		Function used for developing the indicator.
+		It retrieves the properties from GEOGRID/properties and links the table Handler.
+		This should not be used for deploying the indicator.
+		If the table_name is passed as a string, it will create an individual Handler for this indicator.
+		The Handler will use this function to pass only the GEOGRID/properties
+
+		Parameters
+		----------
+		table_name: str or Handler
+			Name of the table or Handler object.
+		'''
+		if isinstance(table_name,Handler):
+			H = table_name
+		else:
+			H = Handler(table_name)
+			self.tableHandler = H
+		self.assign_geogrid_props(H)
+
+
+	def get_geogrid_data(self,as_df=False):
+		'''
+		Returns the geogrid data from the linked table if there is any.
+		(see link_table)
+
+		Parameters
+		----------
+		as_df: boolean (default=False)
+			If True, it will return data as a DataFrame.
+		'''
+		if self.tableHandler is not None:
+			geogrid_data = self.tableHandler._get_grid_data(include_geometries=self.requires_geometry)
+			if as_df:
+				geogrid_data = pd.DataFrame(geogrid_data)
+				if include_geometries:
+					geogrid_data = gpd.GeoDataFrame(geogrid_data.drop('geometry',1),geometry=geogrid_data['geometry'].apply(lambda x: shape(x)))
+			return geogrid_data
+		else:
+			return None
+		
+
+	def assign_geogrid_props(self, handler):
+		'''
+		Assigns the GEOGRID properties to the indicator.
+		Takes care of filling
+			self.types_def
+			self.geogrid_header
+
+		Parameters
+		----------
+		handler: Handler
+			Instantiated object of the Handler class.
+		'''
+		geogrid_props = handler.geogrid_props
+		self.types_def = geogrid_props['types']
+		self.geogrid_header = geogrid_props['header']
 
 	def restructure(self,geogrid_data):
 		geogrid_data_df = self._transform_geogrid_data_to_df(geogrid_data)

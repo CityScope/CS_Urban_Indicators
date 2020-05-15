@@ -156,7 +156,7 @@ def main():
     H.add_indicator(E)
     
     print(E.return_baseline())
-    print(E.return_indicator(H.geogrid_data()))
+    print(E.return_indicator(H.get_geogrid_data()))
     
 if __name__ == '__main__':
 	main()

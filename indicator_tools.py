@@ -63,8 +63,11 @@ class EconomicIndicatorBase(Indicator):
 
     def grid_to_industries(self,geogrid_data):
         '''
-        THIS FUNCTION SHOULD TRANSLATE BETWEEN GEOGRIDDATA TO NAICS
+        Translates between geogrid_data and industry composition using the geogrid_props.
+        
         '''
+        if self.types_def is None:
+            raise NameError('No table associated with this indicator. Please run assign_geogrid_props.')
         industries_by_grid_cell=[]
         for cell in geogrid_data:
             if cell['name'] in self.types_def:

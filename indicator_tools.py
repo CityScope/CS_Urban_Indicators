@@ -179,6 +179,42 @@ class EconomicIndicatorBase(Indicator):
         if return_data:
             return self.output_per_employee_by_naics
 
+    def standardize_NAICS_for_RnD(self,I_data,NAICS_col = 'NAICS'):
+        '''
+        Only takes NAICS at the 4 digit level.
+        '''
+        if len(I_data[I_data[NAICS_col].str.len()!=4]):
+            raise NameError('Invalide NAICS 4-digit column')
+        I_data = I_data.assign(NAICS_STD = I_data[NAICS_col].values)
+
+        B = (I_data['NAICS_STD'].str[0]=='3')
+        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+        I_data.loc[I_data['NAICS_STD'].isin(['313','314','315','316']),'NAICS_STD'] = '313–16'
+
+        B = (I_data['NAICS_STD'].str[0]=='2')
+        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+
+        B = (I_data['NAICS_STD'].str[0]=='4')
+        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+        I_data.loc[I_data['NAICS_STD'].isin(['48','49']),'NAICS_STD'] = '48–49'
+
+        B = (I_data['NAICS_STD'].str[:2]=='51')
+        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+        I_data.loc[B&(~I_data['NAICS_STD'].isin(['511','517','518'])),'NAICS_STD'] = 'other 51'
+
+        B = (I_data['NAICS_STD'].str[:2]=='52')
+        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+
+        B = (I_data['NAICS_STD'].str[:2]=='53')
+        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+        I_data.loc[B&(~I_data['NAICS_STD'].isin(['533'])),'NAICS_STD'] = 'other 53'
+
+        B = (I_data['NAICS_STD'].str[:2]=='54')
+        I_data.loc[B&(~I_data['NAICS_STD'].isin(['5413','5415','5417'])),'NAICS_STD'] = 'other 54'
+
+        I_data.loc[(I_data['NAICS_STD'].isin(['621','622','623'])),'NAICS_STD'] = '621–23'
+        return I_data['NAICS_STD'].values
+
 
 
 class DataLoader:
@@ -535,7 +571,7 @@ class DataLoader:
             empOcc['SELECTED_LEVEL'] = empOcc['OCC_CODE'].str[:self.occLevel]
             self.emp_occ = empOcc
     
-    def load_RnD_data(self):
+    def load_RnD_data(self,return_data=False):
         '''
         Load data on RnD by industry.
         This data will be relevant for the innovation intensity of the industries in the area.
@@ -580,6 +616,8 @@ class DataLoader:
         nsf.loc[nsf['Worldwide R&D performance - Paid for by the company']=='11,873 - 12,096'] = 11985
         nsf = nsf.assign(RnD_investment = 10e6*nsf['Domestic R&D performance - Paid for by the company'].astype(float))
         self.RnD = nsf[['NAICS code','RnD_investment']]
+        if return_data:
+            return self.RnD
 
 
     def load_patent_data(self,pop_th=100000):

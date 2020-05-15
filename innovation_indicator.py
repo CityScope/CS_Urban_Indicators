@@ -21,6 +21,7 @@ class InnoIndicator(EconomicIndicatorBase):
 		self.knowledge = None
 		self.sks_model = None
 		self.kno_model = None
+		self.RnD_pc    = None
 		
 	def return_indicator(self, geogrid_data):
 		industry_composition  = self.grid_to_industries(geogrid_data)
@@ -28,12 +29,14 @@ class InnoIndicator(EconomicIndicatorBase):
 		skill_composition     = self.occupations_to_skills(worker_composition)
 		knowledge_composition = self.occupations_to_knowledge(worker_composition)
 
+
 		skills    = self.SKSindicator(skill_composition)
 		knowledge = self.KNOindicator(knowledge_composition)
+		RnD       = self.RNDindicator(industry_composition)
 		out = [
 				{'name':'District-knowledge','value':knowledge,'category':'innovation'},
 				{'name':'District-skills','value':skills,'category':'innovation'},
-				{'name':'District-funding','value':0.3,'category':'innovation'}
+				{'name':'District-funding','value':RnD,'category':'innovation'}
 			  ]
 		return out
 		
@@ -63,7 +66,7 @@ class InnoIndicator(EconomicIndicatorBase):
 		value = self.kno_model.predict(knowledge_composition)[0]
 		return np.exp(value)
 
-	def RNDindicator(self,industry_composition):
+	def RNDindicator(self,industry_composition,log_output=True):
 		'''
 		Returns the innovation intensity of the industries in the area.
 		The intensity of each industry is inferred based on their RnD investement at the national level.
@@ -73,8 +76,16 @@ class InnoIndicator(EconomicIndicatorBase):
 		industry_composition : dict
 			Number of companies in each industry.
 		'''
-		pass
-		
+		industry_composition_df = pd.DataFrame(industry_composition.items(),columns=['NAICS','EMP'])
+		industry_composition_df = industry_composition_df.assign(NAICS = self.standardize_NAICS_for_RnD(industry_composition_df))
+		industry_composition_df = industry_composition_df.groupby('NAICS').sum().reset_index()
+		industry_composition_df = pd.merge(industry_composition_df,self.RnD_pc)
+		RnD = (industry_composition_df['TOT_EMP']*industry_composition_df['RnD_pc']).sum()
+		if log_output:
+			return np.log10(RnD+1)
+		else:
+			return RnD
+
 
 	def SKSindicator(self,skill_composition):
 		'''
@@ -108,10 +119,27 @@ class InnoIndicator(EconomicIndicatorBase):
 		'''
 		self.load_IO_data()
 		self.load_onet_data()
+		self.load_RnD_pc()
 		if self.sks_model is None:
 			self.sks_model = joblib.load(self.sks_model_path)
 		if self.kno_model is None: 
 			self.kno_model = joblib.load(self.kno_model_path)
+
+	def load_RnD_pc(self):
+		'''
+		Loads data on RnD per capita
+		'''
+		self.load_IO_data()
+		if self.RnD_pc is None:
+			I_data = self.IO_data.groupby('NAICS').sum()[['TOT_EMP']].reset_index()
+			I_data = I_data.assign(NAICS = I_data['NAICS'].str[:4]).groupby('NAICS').sum()[['TOT_EMP']].reset_index()
+			I_data = I_data.assign(NAICS = self.standardize_NAICS_for_RnD(I_data))
+			I_data = I_data.groupby('NAICS').sum()[['TOT_EMP']].reset_index()
+
+			RnD = DataLoader().load_RnD_data(return_data=True).rename(columns={'NAICS code':'NAICS'})
+			I_data = pd.merge(I_data,RnD)
+			I_data['RnD_pc'] = I_data['RnD_investment']/I_data['TOT_EMP']
+			self.RnD_pc = I_data
 		
 
 	def occupations_to_skills(self,worker_composition):
@@ -180,7 +208,7 @@ class InnoIndicator(EconomicIndicatorBase):
 			loader.load_onet_data(include_employment=False)
 			self.skills    = loader.skills
 			self.knowledge = loader.knowledge
-	
+
 
 import random
 def main():

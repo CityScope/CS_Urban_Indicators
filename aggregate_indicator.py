@@ -9,7 +9,7 @@ from statistics import mean
 
 from toolbox import Handler, Indicator
 from proximity_indicator import ProxIndicator
-from random_indicator import RandomIndicator
+from examples import RandomIndicator
 
 class AggregateIndicator(Indicator):
     def setup(self,*args,**kwargs):

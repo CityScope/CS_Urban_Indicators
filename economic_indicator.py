@@ -73,13 +73,13 @@ class EconomicIndicator(EconomicIndicatorBase):
         # self.grid_to_industries=kwargs['grid_to_industries']
         # self.industries_to_occupations=kwargs['industries_to_occupations']
         self.name=kwargs['name']
-        sim_zones=json.load(open('./tables/{}/sim_zones.json'.format(self.table_name)))
-        table_geoids=[z.split('US')[1] for z in sim_zones]
-        # get the baseline num workers in district by industry NAICS code
-        self.base_industry_composition=self.get_baseline_employees_by_naics(self.table_name, table_geoids,return_data=True)
-        self.base_worker_composition=self.industries_to_occupations(self.base_industry_composition)
-
-        # self.output_per_employee_by_naics=self.load_output_per_employee(return_data=True)
+#        sim_zones=json.load(open('./tables/{}/sim_zones.json'.format(self.table_name)))
+#        table_geoids=[z.split('US')[1] for z in sim_zones]
+#        # get the baseline num workers in district by industry NAICS code
+#        self.base_industry_composition=self.get_baseline_employees_by_naics(self.table_name, table_geoids,return_data=True)
+#        self.base_worker_composition=self.industries_to_occupations(self.base_industry_composition)
+#
+#        # self.output_per_employee_by_naics=self.load_output_per_employee(return_data=True)
         self.load_output_per_employee() #This function should load the df without the need of returning it 
         salary_data=pd.read_excel('./tables/innovation_data/national_M2019_dl.xlsx')
 #        salary_data=salary_data.set_index('occ_code')
@@ -88,37 +88,45 @@ class EconomicIndicator(EconomicIndicatorBase):
         
     def return_indicator(self, geogrid_data):
         # add new workers to baseline workers
-        new_industry_composition = self.grid_to_industries(geogrid_data)
-        new_worker_composition   = self.industries_to_occupations(new_industry_composition)
-        all_worker_composition={k: v for k,v in self.base_worker_composition.items()}
-        for code in new_worker_composition:
-            if code in all_worker_composition:
-                all_worker_composition[code]+=new_worker_composition[code]
-            else:
-                all_worker_composition[code]=new_worker_composition[code]       
-        avg_salary=self.get_avg_salary(all_worker_composition)
-        base_ouput=self.get_total_output(self.base_industry_composition)
-        new_ouput=self.get_total_output(new_industry_composition)
-        total_output=base_ouput+new_ouput
+#        new_industry_composition = self.grid_to_industries(geogrid_data)
+#        new_worker_composition   = self.industries_to_occupations(new_industry_composition)
+#        all_worker_composition={k: v for k,v in self.base_worker_composition.items()}
+#        for code in new_worker_composition:
+#            if code in all_worker_composition:
+#                all_worker_composition[code]+=new_worker_composition[code]
+#            else:
+#                all_worker_composition[code]=new_worker_composition[code]  
+        industry_composition=self.grid_to_industries(geogrid_data)
+        worker_composition   = self.industries_to_occupations(industry_composition)
+        num_workers=sum([worker_composition[code] for code in worker_composition])
+        avg_salary=self.get_avg_salary(worker_composition)
+#        base_ouput=self.get_total_output(self.base_industry_composition)
+        output=self.get_total_output(industry_composition)
+        max_output=5e9
+        max_workers=50000
+        print(output)
+#        total_output=base_ouput+new_ouput
         self.value_indicators=[{'value': min(1, avg_salary/100000), 'name': 'Average Earnings', 
                  'viz_type': self.viz_type},
-                {'value': min(1, total_output/(2*base_ouput)), 'name': 'Industry Output', 
+                {'value': min(1, output/(max_output)), 'name': 'Industry Output', 
+                 'viz_type': self.viz_type},
+                 {'value': min(1, num_workers/(max_workers)), 'name': 'Employment Density', 
                  'viz_type': self.viz_type}]
         return self.value_indicators
         
-    def return_baseline(self):
-        base_ouput=self.get_total_output(self.base_industry_composition)
-        base_avg_salary=self.get_avg_salary(self.base_worker_composition)
-        return [{'value': min(1, base_avg_salary/100000), 'name': 'Average Earnings', 
-                 'viz_type': self.viz_type},
-                {'value': base_ouput, 'name': 'Industry Output', 
-                 'viz_type': self.viz_type}]
+#    def return_baseline(self):
+#        base_ouput=self.get_total_output(self.base_industry_composition)
+#        base_avg_salary=self.get_avg_salary(self.base_worker_composition)
+#        return [{'value': min(1, base_avg_salary/100000), 'name': 'Average Earnings', 
+#                 'viz_type': self.viz_type},
+#                {'value': base_ouput, 'name': 'Industry Output', 
+#                 'viz_type': self.viz_type}]
         
             
     def get_avg_salary(self, worker_composition):
-        for occ_code in worker_composition:
-            total_salary=0
-            denom=0            
+        total_salary=0
+        denom=0  
+        for occ_code in worker_composition:          
             padded_occ_code=occ_code.ljust(7, '0')
             if padded_occ_code in self.code_to_salary:
                 salary=self.code_to_salary[padded_occ_code]

@@ -220,8 +220,8 @@ class BuildingsIndicator(Indicator):
                 {'name': 'Residential Energy Performance', 'value': comm_energy_score,
                 'viz_type': self.viz_type}]
         return self.value_indicators
-#def main():
-if True:
+def main():
+#if True:
     B= BuildingsIndicator(name='buildings',  table_name='corktown')
 #    H = Handler('corktown', quietly=False)
 #    H.add_indicator(B)
@@ -234,5 +234,5 @@ if True:
 #    H.listen()
 
 
-#if __name__ == '__main__':
-#	main()        
+if __name__ == '__main__':
+	main()        

@@ -176,7 +176,7 @@ class InnoIndicator(EconomicIndicatorBase):
 	def load_onet_data(self):
 		if (self.skills is None)|(self.knowledge is None):
 			loader = DataLoader()
-			loader.load_onet_data()
+			loader.load_onet_data(include_employment=False)
 			self.skills    = loader.skills
 			self.knowledge = loader.knowledge
 	

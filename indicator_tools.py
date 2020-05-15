@@ -250,11 +250,23 @@ class DataLoader:
         if return_data:
             return self.IO_data
 
-    def load_onet_data(self):
+    def load_onet_data(self,include_employment=True):
         '''
         Loads skills and knowledge datasets from ONET.
         For more information see:
         https://www.onetcenter.org/database.html#all-files
+
+        Parameters
+        ----------
+        include_employment: boolean (default=True)
+            If False it will only load data on skills and knoledge by occupation:
+                skills
+                skills_names
+                knowledge
+                knowledge_names
+            If True it will aggregate to msas and zips:
+                msa_skills
+                zip_knowledge
 
         '''
         onet_url = 'https://www.onetcenter.org/dl_files/database/db_24_2_excel/'

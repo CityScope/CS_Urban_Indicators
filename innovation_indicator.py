@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
+import joblib
 from indicator_tools import DataLoader, EconomicIndicatorBase
 
 class InnoIndicator(EconomicIndicatorBase):

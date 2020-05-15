@@ -517,7 +517,7 @@ class Handler:
 				self.perform_update(grid_hash_id=grid_hash_id,append=append)
 
 class Indicator:
-	def __init__(self,*args,model_path=None,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
+	def __init__(self,*args,table_name=None,model_path=None,requires_geometry=False,indicator_type='numeric',viz_type='radar',**kwargs):
 		self.name = None
 		self.indicator_type = indicator_type
 		self.viz_type = viz_type
@@ -532,6 +532,9 @@ class Indicator:
 		self.tableHandler = None
 		if self.indicator_type in ['heatmap','access']:
 			self.viz_type = None
+
+		if table_name is not None:
+			self.link_table(table_name)
 
 	def _transform_geogrid_data_to_df(self,geogrid_data):
 		'''

@@ -580,6 +580,7 @@ class Indicator:
 		self.geogrid_header=None
 		self.is_composite = False
 		self.tableHandler = None
+		self.table_name = None
 		for k in ['name','model_path','requires_geometry','indicator_type','viz_type']:
 			if k in kwargs.keys():
 				self.name = kwargs[k]
@@ -587,8 +588,6 @@ class Indicator:
 			self.viz_type = None
 		self.setup(*args,**kwargs)
 		self.load_module()
-		if 'table_name' is kwargs.keys():
-			self.link_table(kwargs['table_name'])
 
 	def _transform_geogrid_data_to_df(self,geogrid_data):
 		'''
@@ -599,7 +598,7 @@ class Indicator:
 			geogrid_data = gpd.GeoDataFrame(geogrid_data.drop('geometry',1),geometry=geogrid_data['geometry'].apply(lambda x: shape(x)))
 		return geogrid_data
 
-	def link_table(self,table_name):
+	def link_table(self,table_name=None):
 		'''
 		Function used for developing the indicator.
 		It retrieves the properties from GEOGRID/properties and links the table Handler.
@@ -612,6 +611,10 @@ class Indicator:
 		table_name: str or Handler
 			Name of the table or Handler object.
 		'''
+		if (table_name is None) & (self.table_name is None):
+			raise NameError('Please provide a table_name to link')
+		if table_name is None:
+			table_name = self.table_name
 		if isinstance(table_name,Handler):
 			H = table_name
 		else:

@@ -404,7 +404,7 @@ class Handler:
 	def test_indicators(self):
 		geogrid_data = self._get_grid_data()
 		for indicator_name in self.indicators:
-			if I[indicator_name].is_composite:
+			if self.indicators[indicator_name].is_composite:
 				indicator_values = self.get_indicator_values(include_composite=False)
 				self._new_value(indicator_values,indicator_name)
 			else:

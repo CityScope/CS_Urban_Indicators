@@ -17,6 +17,7 @@ import pyproj
 import random
 import requests
 from toolbox import Handler, Indicator
+from indicator_tools import flatten_grid_cell_attributes
 
 
 class ProxIndicator(Indicator):
@@ -47,6 +48,12 @@ class ProxIndicator(Indicator):
                   'Park': {'parks': 4},
                   'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
                   'Service': {'parking': 100}}
+        self.lbcs_to_pois={
+                '7240': 'parks',
+                "4100": 'education',
+                '2100': 'groceries',
+                '2200': 'restaurants',               
+                }
         
     def prepare_model(self):
         print('Preparing model')
@@ -63,13 +70,12 @@ class ProxIndicator(Indicator):
         self.projection=pyproj.Proj("+init=EPSG:"+local_epsg)
         self.wgs=pyproj.Proj("+init=EPSG:4326")
         cityIO_get_url=self.host+'api/table/'+self.table_name
-        print(cityIO_get_url+'/GEOGRID')
         with urllib.request.urlopen(cityIO_get_url+'/GEOGRID') as url:
             self.geogrid=json.loads(url.read().decode())
         self.geogrid_header=self.geogrid['properties']['header']
         self.geogrid_ll=[self.geogrid['features'][i][
                 'geometry']['coordinates'][0][0
-                ] for i in range(len(self.geogrid['features']))]        
+                ] for i in range(len(self.geogrid['features']))] 
         self.geogrid_x, self.geogrid_y=pyproj.transform(self.wgs, self.projection,
               [self.geogrid_ll[p][0] for p in range(len(self.geogrid_ll))], 
               [self.geogrid_ll[p][1] for p in range(len(self.geogrid_ll))])
@@ -236,13 +242,13 @@ class ProxIndicator(Indicator):
         self.affected_sample_nodes={} # to create the geojson
         self.affected_grid_nodes={} # to get the average accessibility. eg. from all housing cells
         for gi in range(len(self.geogrid_xy)):
-            if gi%200==0:
-                print('{} of {} geogrid nodes'.format(gi, len(self.geogrid_xy)))
-            a_node='g'+str(gi)
-            affected_nodes=nx.ego_graph(rev_graph, a_node, radius=self.radius, center=True, 
-                                        undirected=False, distance='weight').nodes
-            self.affected_grid_nodes[str(gi)]=[n for n in affected_nodes if 'g' in str(n)]
-            self.affected_sample_nodes[str(gi)]=[n for n in affected_nodes if 's' in str(n)]
+            if ((self.geogrid['features'][gi]['properties']['interactive']) or 
+                (self.geogrid['features'][gi]['properties']['type'] in ['MCS', 'Ford Campus'])):
+                a_node='g'+str(gi)
+                affected_nodes=nx.ego_graph(rev_graph, a_node, radius=self.radius, center=True, 
+                                            undirected=False, distance='weight').nodes
+                self.affected_grid_nodes[str(gi)]=[n for n in affected_nodes if 'g' in str(n)]
+                self.affected_sample_nodes[str(gi)]=[n for n in affected_nodes if 's' in str(n)]
         self.from_employ_pois=['housing']
         self.from_housing_pois=[poi for poi in self.all_poi_types if not poi=='housing']
             
@@ -301,7 +307,6 @@ class ProxIndicator(Indicator):
         return output_geojson
     
     def return_indicator(self, geogrid_data):
-        print(self.scalers)
         sample_nodes_acc={n: {t:self.sample_nodes_acc_base[n][t] for t in self.all_poi_types
                               } for n in self.sample_nodes_acc_base}
         grid_nodes_acc={n: {t:self.grid_nodes_acc_base[n][t] for t in self.all_poi_types
@@ -310,22 +315,62 @@ class ProxIndicator(Indicator):
 #            if not type(usage)==list:
 #                print('Usage value is not a list: '+str(usage))
 #                usage=[-1,-1]
-            this_grid_lu=cell_data['name']
-            if this_grid_lu in self.pois_per_lu:
-                sample_nodes_to_update=self.affected_sample_nodes[str(gi)]
-                grid_nodes_to_update=self.affected_grid_nodes[str(gi)]
-                for poi in self.pois_per_lu[this_grid_lu]:
-                    if poi in self.all_poi_types:
-                        n_to_add=self.pois_per_lu[this_grid_lu][poi]
-                        if n_to_add<1:
-                            if random.uniform(0,1)<=n_to_add:
-                                n_to_add=1
-                            else:
-                                n_to_add=0
-                        for n in sample_nodes_to_update:
-                            sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
-                        for n in grid_nodes_to_update:
-                            grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
+            if ((cell_data['interactive']) or (cell_data['name'] in ['MCS', 'Ford Campus'])):
+                this_grid_lu=cell_data['name']
+                if this_grid_lu in self.types_def:
+                    all_lbcs=flatten_grid_cell_attributes(
+                            type_def=self.types_def[this_grid_lu], height=cell_data['height'],
+                            attribute_name='LBCS', area_per_floor=self.geogrid_header['cellSize']**2,
+                            return_units='floors') 
+                    new_jobs=flatten_grid_cell_attributes(
+                            type_def=self.types_def[this_grid_lu], height=cell_data['height'],
+                            attribute_name='NAICS', area_per_floor=self.geogrid_header['cellSize']**2,
+                            return_units='capacity')
+                    n_new_jobs=sum([new_jobs[code] for code in new_jobs])
+                    if '1100' in all_lbcs:
+                        new_housing_capacity=all_lbcs['1100']
+                    else:
+                        new_housing_capacity=0
+                    sample_nodes_to_update=self.affected_sample_nodes[str(gi)]
+                    grid_nodes_to_update=self.affected_grid_nodes[str(gi)]
+                    for n in sample_nodes_to_update:
+                        sample_nodes_acc[n.split('s')[1]]['housing']+=new_housing_capacity
+                        sample_nodes_acc[n.split('s')[1]]['employment']+=n_new_jobs
+                    for n in grid_nodes_to_update:
+                        grid_nodes_acc[n.split('g')[1]]['housing']+=new_housing_capacity
+                        grid_nodes_acc[n.split('g')[1]]['employment']+=n_new_jobs
+                    if any (code in self.lbcs_to_pois for code in all_lbcs):
+                        for lbcs in all_lbcs:
+                            if lbcs in self.lbcs_to_pois:
+                                poi =self.lbcs_to_pois[lbcs]
+                                n_to_add=all_lbcs[lbcs]
+                                for n in sample_nodes_to_update:
+                                    sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
+                                for n in grid_nodes_to_update:
+                                    grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
+                        
+                    
+                # if any lbcs in lbcs_to_pois
+                # get nodes to update
+                # for lbcs in all_lbcs:
+                # for poi in lbcs_to_pois[lbcs]
+                # n_to_add= lbcs_capacity
+                
+#                if this_grid_lu in self.pois_per_lu:
+#                    sample_nodes_to_update=self.affected_sample_nodes[str(gi)]
+#                    grid_nodes_to_update=self.affected_grid_nodes[str(gi)]
+#                    for poi in self.pois_per_lu[this_grid_lu]:
+#                        if poi in self.all_poi_types:
+#                            n_to_add=self.pois_per_lu[this_grid_lu][poi]
+#                            if n_to_add<1:
+#                                if random.uniform(0,1)<=n_to_add:
+#                                    n_to_add=1
+#                                else:
+#                                    n_to_add=0
+#                            for n in sample_nodes_to_update:
+#                                sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
+#                            for n in grid_nodes_to_update:
+#                                grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
         self.value_indicators=[]
         # TODO: should use baseline land uses as well as added ones
         for poi in self.from_employ_pois:
@@ -350,16 +395,17 @@ class ProxIndicator(Indicator):
 
 def main():
     P= ProxIndicator(name='proximity',  indicator_type_in='heatmap', 
-                     table_name='aalto_02', viz_type_in='heatmap')
-    H = Handler('aalto_02', quietly=False)
-    H.add_indicator(P)
-    
-    print(H.geogrid_data())
-
-    print(H.list_indicators())
-    print(H.update_package())
-
-    H.listen()
+                     table_name='corktown', viz_type_in='heatmap')
+    P.prepare_model()
+#    H = Handler('corktown', quietly=False)
+#    H.add_indicator(P)
+#    
+#    print(H.geogrid_data())
+#
+#    print(H.list_indicators())
+#    print(H.update_package())
+#
+#    H.listen()
 
 
 if __name__ == '__main__':

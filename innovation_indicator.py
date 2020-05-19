@@ -39,8 +39,20 @@ class InnoIndicator(EconomicIndicatorBase):
 				{'name':'District-funding','value':RnD,'category':'innovation','viz_type': self.viz_type}
 			  ]
 		return out
+
+	def normalize_value(value,bounds):
+		'''
+		Normalizes the given value within the given bounds to ensure it stays between 0 and 1. 
+		'''
+		value = (value-bounds[0])/(bounds[1]-bounds[0])
+		if value>1:
+			value = 1
+		elif value<0:
+			value = 0
+		return value
+
 		
-	def KNOindicator(self,knowledge_composition):
+	def KNOindicator(self,knowledge_composition,normalize=True):
 		'''
 		Innovation indicator based on knowledge composition of the surrounding areas. 
 		The Knowledge Composition is the composition of knowledge of the average worker in the vecinity.
@@ -60,13 +72,18 @@ class InnoIndicator(EconomicIndicatorBase):
 			 '2.C.4.c': 0.06381380135912351,
 			 '2.C.10': 0.056718692091353703,
 			 ...
+		normalize: boolean (default=True)
+			If True, it will ensure the indicator returns values between 0 and 1. 
 		'''
 		self.load_module()
 		knowledge_composition = pd.DataFrame([knowledge_composition])
 		value = self.kno_model.predict(knowledge_composition)[0]
-		return np.exp(value)
+		if normalize:
+			bounds = [-12,-7]
+			value = self.normalize_value(value,bounds)
+		return value
 
-	def RNDindicator(self,industry_composition,log_output=True):
+	def RNDindicator(self,industry_composition,normalize=True):
 		'''
 		Returns the innovation intensity of the industries in the area.
 		The intensity of each industry is inferred based on their RnD investement at the national level.
@@ -75,19 +92,22 @@ class InnoIndicator(EconomicIndicatorBase):
 		----------
 		industry_composition : dict
 			Number of companies in each industry.
+		normalize: boolean (default=True)
+			If True, it will ensure the indicator returns values between 0 and 1. 
 		'''
 		industry_composition_df = pd.DataFrame(industry_composition.items(),columns=['NAICS','EMP'])
 		industry_composition_df = industry_composition_df.assign(NAICS = self.standardize_NAICS_for_RnD(industry_composition_df))
 		industry_composition_df = industry_composition_df.groupby('NAICS').sum().reset_index()
 		industry_composition_df = pd.merge(industry_composition_df,self.RnD_pc)
 		RnD = (industry_composition_df['TOT_EMP']*industry_composition_df['RnD_pc']).sum()
-		if log_output:
-			return np.log10(RnD+1)
-		else:
-			return RnD
+		value = np.log10(RnD+1)
+		if normalize:
+			bounds = [6,14]
+			value = self.normalize_value(value,bounds)
+		return value
 
 
-	def SKSindicator(self,skill_composition):
+	def SKSindicator(self,skill_composition,normalize=True):
 		'''
 		Innovation indicator based on skill composition of the surrounding areas. 
 		The Skill Composition is the composition of skills of the average worker in the vecinity.
@@ -107,11 +127,16 @@ class InnoIndicator(EconomicIndicatorBase):
 			 '2.B.3.k': 0.06381380135912351,
 			 '2.B.5.d': 0.056718692091353703,
 			 ...
+		normalize: boolean (default=True)
+			If True, it will ensure the indicator returns values between 0 and 1. 
 		'''
 		self.load_module()
 		skill_composition = pd.DataFrame([skill_composition])
 		value = self.sks_model.predict(skill_composition)[0]
-		return np.exp(value)
+		if normalize:
+			bounds = [-11,-5]
+			value = self.normalize_value(value,bounds)
+		return value
 
 	def load_module(self):
 		'''

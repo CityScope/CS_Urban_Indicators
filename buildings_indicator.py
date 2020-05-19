@@ -41,7 +41,8 @@ from pprint import pprint
 import pickle
 import urllib
 import matplotlib.pyplot as plt
-from indicator_tools import fit_rf_regressor
+from indicator_tools import fit_rf_regressor, flatten_grid_cell_attributes
+import operator
 
 pba_to_lbcs={
         1: '9000',
@@ -65,7 +66,11 @@ pba_to_lbcs={
         26: '4300', # service = utilities?
         91: '9000'
         }
-
+def year_con_to_age(year_con, base_year):
+    if year_con==995:
+        return 100
+    else:
+        return base_year-year_con
 #def fit_rf_regressor(df, cat_cols, numerical_cols, y_col):
 #    features=[c for c in numerical_cols]
 #    for col in cat_cols:        
@@ -144,6 +149,8 @@ class BuildingsIndicator(Indicator):
         with urllib.request.urlopen(GEOGRID_props_loc) as url:
             geogrid_props=json.loads(url.read().decode())
         self.cell_size=geogrid_props['header']['cellSize']
+        self.max_result_per_worker=250000
+        self.min_result_per_worker=200000
                 
     def train(self):
         comm_data=pd.read_csv(self.train_data_loc+'/2012_public_use_data_aug2016.csv')
@@ -157,19 +164,18 @@ class BuildingsIndicator(Indicator):
         # ELBTU: electricity consumption (thous btus)
         comm_data.loc[comm_data['NFLOOR']==994, 'NFLOOR']=20
         comm_data.loc[comm_data['NFLOOR']==995, 'NFLOOR']=30
+        comm_data['AGE']=comm_data.apply(lambda row: row['YRCONC'])
         comm_data['LBCS']=comm_data.apply(lambda row: 
             pba_to_lbcs[row['PBA']], axis=1)
         comm_data['SQM']=0.092*comm_data['SQFT']
             
         # build training dataset
-        comm_model_df=comm_data[['NFLOOR','LBCS','NWKER', 'SQM', 'MFBTU']]
+        comm_model_df=comm_data[['NFLOOR','LBCS','NWKER', 'SQM', 'MFBTU', 'AGE']]
         comm_model_df=comm_model_df.loc[~comm_model_df['MFBTU'].isnull()]
-        self.comm_model, self.comm_model_features=fit_rf_regressor(df=comm_model_df, numerical_cols=['NFLOOR', 'SQM'],
+        self.comm_model, self.comm_model_features=fit_rf_regressor(df=comm_model_df, numerical_cols=['NFLOOR', 'SQM', 'AGE'],
                                     cat_cols=['LBCS'], y_col='MFBTU') 
         # get max and min, nimalised by num workers
         comm_model_df=comm_model_df.loc[comm_model_df['NWKER']>0]
-        self.max_result_per_worker=10000
-        self.min_result_per_worker=0
 #        self.max_result_per_worker=max(comm_model_df['MFBTU']/comm_model_df['NWKER'])
 #        self.min_result_per_worker=min(comm_model_df['MFBTU']/comm_model_df['NWKER'])
         model_object={'model': self.comm_model, 'features': self.comm_model_features,
@@ -183,31 +189,45 @@ class BuildingsIndicator(Indicator):
             fitted_comm_model=pickle.load(open(self.fitted_model_object_loc, 'rb'))
             self.comm_model=fitted_comm_model['model']
             self.comm_model_features=fitted_comm_model['features']  
-            self.max_result_per_worker=fitted_comm_model['max'] 
-            self.min_result_per_worker=fitted_comm_model['min'] 
+#            self.max_result_per_worker=fitted_comm_model['max'] 
+#            self.min_result_per_worker=fitted_comm_model['min'] 
         except:
             print('Model not yet trained. Training now')
             self.train()
                    
     def return_indicator(self, geogrid_data):
-        blds_list=[]
+        comm_blds_list=[]
+        comm_model_lbcs=[feat.split('_')[1] for feat in self.comm_model_features if 'LBCS' in feat]
         for grid_cell in geogrid_data:
-            this_bld={feat:0 for feat in self.comm_model_features}
-            if grid_cell["name"] in ['Office', 'Office Tower', 'Mix-Use']:                
-                this_bld['LBCS_2300']=1
-                if grid_cell['name']  ==  'Office Tower':
-                    this_bld['NFLOOR']=10
-                else:
-                    this_bld['NFLOOR']=4
-                this_bld['SQM']=self.cell_size*self.cell_size*this_bld['NFLOOR']
-                this_bld['NWKER']=this_bld['SQM']/7
-                blds_list.append(this_bld)
-        if len(blds_list)>0:
-            X_df=pd.DataFrame.from_dict(blds_list)
+            height=grid_cell['height']
+            if isinstance(height, list):
+                height=height[-1]
+            if ((height>0) and (grid_cell['name'] in self.types_def)):
+                # if there is actually a building here
+                this_bld={feat:0 for feat in self.comm_model_features}
+    #            if grid_cell["name"] in ['Office', 'Office Tower', 'Mix-Use', 'Retail']:                
+    #                this_bld['LBCS_2300']=1
+                all_lbcs=flatten_grid_cell_attributes(
+                            type_def=self.types_def[grid_cell['name']], height=grid_cell['height'],
+                            attribute_name='LBCS', area_per_floor=self.geogrid_header['cellSize']**2)
+                all_people=sum(all_lbcs[c] for c in all_lbcs)
+                if len(all_lbcs)>0:
+                    # if there is any LBCS code
+                    main_lbcs=max(all_lbcs.items(), key=operator.itemgetter(1))[0]
+                    main_lbcs_2_digit=main_lbcs[:2]+'00'
+                    this_bld['LBCS_{}'.format(str(main_lbcs_2_digit))]=1
+                    this_bld['NFLOOR']=height
+                    this_bld['SQM']=self.cell_size*self.cell_size*this_bld['NFLOOR']
+                    if main_lbcs_2_digit in comm_model_lbcs:  
+                        # if the main use is commercial
+                        this_bld['NWKER']=all_people
+                        comm_blds_list.append(this_bld)
+        if len(comm_blds_list)>0:
+            X_df=pd.DataFrame.from_dict(comm_blds_list)
             X=X_df[self.comm_model_features]
             X_df['pred']=self.comm_model.predict(X)
-            X_df['energy_per_worker']=X_df['pred']/X_df['NWKER']
-            avg_energy_per_worker=X_df['energy_per_worker'].mean()
+#            X_df['energy_per_worker']=X_df['pred']/X_df['NWKER']
+            avg_energy_per_worker=sum(X_df['pred'])/sum(X_df['NWKER'])
             print(avg_energy_per_worker)
             norm_avg_energy_per_worker=(avg_energy_per_worker-self.min_result_per_worker
                                         )/(self.max_result_per_worker-self.min_result_per_worker)
@@ -223,15 +243,15 @@ class BuildingsIndicator(Indicator):
 def main():
 #if True:
     B= BuildingsIndicator(name='buildings',  table_name='corktown')
-#    H = Handler('corktown', quietly=False)
-#    H.add_indicator(B)
+    H = Handler('corktown', quietly=False)
+    H.add_indicator(B)
 #    
 #    print(H.geogrid_data())
 #
 #    print(H.list_indicators())
 #    print(H.update_package())
 #
-#    H.listen()
+    H.listen()
 
 
 if __name__ == '__main__':

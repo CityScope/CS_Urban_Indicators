@@ -672,26 +672,37 @@ class DataLoader:
 # Functions #
 #############
                 
-def flatten_grid_cell_attributes(type_def, height, attribute_name, area_per_floor):
+def flatten_grid_cell_attributes(type_def, height, attribute_name, 
+                                 area_per_floor, return_units='capacity'):
     if isinstance(height, list):
         height=height[1]
     grid_cell_total={}
     if type_def[attribute_name] is not None:
-        capacity_per_sqm=1/type_def['sqm_pperson']
+        if 'sqm_pperson' in type_def:          
+            capacity_per_sqm=1/type_def['sqm_pperson']
+        else:
+            capacity_per_sqm=0
         capacity_per_floor=capacity_per_sqm*area_per_floor
         floor_assignments=random.choices(range(len(type_def[attribute_name])),
                                          weights=[group['proportion'] for group in type_def[attribute_name]],
                                          k=height)
         for i_g, group in enumerate(type_def[attribute_name]):
             num_floors=floor_assignments.count(i_g)
-            total_floor_capacity=num_floors*capacity_per_floor
+#            total_floor_capacity=num_floors*capacity_per_floor
             for code in group['use']:
-                capacity_this_floor_this_code=total_floor_capacity*group['use'][code]
+                effective_num_floors_this_code=num_floors*group['use'][code]
                 if code in grid_cell_total:
-                    grid_cell_total[code]+=capacity_this_floor_this_code
+                    grid_cell_total[code]+=effective_num_floors_this_code
                 else:
-                    grid_cell_total[code]=capacity_this_floor_this_code
-    return grid_cell_total
+                    grid_cell_total[code]=effective_num_floors_this_code
+    if return_units=='floors':
+        return grid_cell_total                   
+    elif return_units=='capacity':
+        for code in grid_cell_total:
+            grid_cell_total[code]*=capacity_per_floor
+        return grid_cell_total
+    else:
+        print('Unrecognised return units')
 
 def collect_grid_cell_counts(list_of_attr_dicts):
     aggregated={}

@@ -40,7 +40,7 @@ class InnoIndicator(EconomicIndicatorBase):
 			  ]
 		return out
 
-	def normalize_value(value,bounds):
+	def normalize_value(self, value,bounds):
 		'''
 		Normalizes the given value within the given bounds to ensure it stays between 0 and 1. 
 		'''

@@ -243,7 +243,7 @@ class ProxIndicator(Indicator):
         self.affected_grid_nodes={} # to get the average accessibility. eg. from all housing cells
         for gi in range(len(self.geogrid_xy)):
             if ((self.geogrid['features'][gi]['properties']['interactive']) or 
-                (self.geogrid['features'][gi]['properties']['type'] in ['MCS', 'Ford Campus'])):
+                (self.geogrid['features'][gi]['properties']['static_new'])):
                 a_node='g'+str(gi)
                 affected_nodes=nx.ego_graph(rev_graph, a_node, radius=self.radius, center=True, 
                                             undirected=False, distance='weight').nodes

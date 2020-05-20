@@ -726,7 +726,7 @@ def shannon_equitability_score(species_counts):
         equitability=diversity/math.log(len(species_counts))
         return equitability
     else:
-        return None
+        return 0
 
 def parse_CityScopeCategories(fpath,CS_column='CS Amenities ',NAICS_column='Unnamed: 5'):
     '''

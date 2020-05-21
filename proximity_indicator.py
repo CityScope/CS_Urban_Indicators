@@ -372,16 +372,16 @@ class ProxIndicator(Indicator):
 #                            for n in grid_nodes_to_update:
 #                                grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
         self.value_indicators=[]
-        # TODO: should use baseline land uses as well as added ones
+        # TODO: more generic way of deciding the "from" grids
         for poi in self.from_employ_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'Office', 'Light Industrial']])/self.scalers[poi]
+                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'MCS', 'Ford Campus','Office', 'Light Industrial', 'Industrial']])/self.scalers[poi]
             self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value, 'viz_type': self.viz_type})
         for poi in self.from_housing_pois:
             this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Residential', 'Mix-use']])/self.scalers[poi]
+                        ) if geogrid_data[g]['name'] in ['Residential', 'Residential Low Density', 'Mix-use']])/self.scalers[poi]
             self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value, 'viz_type': self.viz_type}) 
 #        print(result)
         for v in self.value_indicators:

@@ -202,7 +202,7 @@ class BuildingsIndicator(Indicator):
             height=grid_cell['height']
             if isinstance(height, list):
                 height=height[-1]
-            if ((height>0) and (grid_cell['name'] in self.types_def)):
+            if ((height>0) and (grid_cell['name'] in self.types_def) and (not grid_cell['name'] =='Park')):
                 # if there is actually a building here
                 this_bld={feat:0 for feat in self.comm_model_features}
     #            if grid_cell["name"] in ['Office', 'Office Tower', 'Mix-Use', 'Retail']:                

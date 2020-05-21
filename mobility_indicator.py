@@ -73,7 +73,7 @@ class MobilityIndicator(Indicator):
         self.min_co2=2.5
         self.max_co2=4
         self.min_pa=0.007
-        self.max_pa=0.009
+        self.max_pa=0.008
         
             
     def return_indicator(self, geogrid_data, future_mobility=1):

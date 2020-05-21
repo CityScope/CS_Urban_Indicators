@@ -102,15 +102,15 @@ class EconomicIndicator(EconomicIndicatorBase):
         avg_salary=self.get_avg_salary(worker_composition)
 #        base_ouput=self.get_total_output(self.base_industry_composition)
         output=self.get_total_output(industry_composition)
-        max_output=5e9
-        max_workers=50000
+        max_output=3e9
+        max_workers=25000
         print(output)
 #        total_output=base_ouput+new_ouput
-        self.value_indicators=[{'value': min(1, avg_salary/100000), 'name': 'Average Earnings', 
+        self.value_indicators=[{'value': min(1, avg_salary/80000), 'name': 'Average Earnings', 
                  'viz_type': self.viz_type},
                 {'value': min(1, output/(max_output)), 'name': 'Industry Output', 
                  'viz_type': self.viz_type},
-                 {'value': min(1, num_workers/(max_workers)), 'name': 'Employment Density', 
+                 {'value': min(1, num_workers/max_workers), 'name': 'Employment Density', 
                  'viz_type': self.viz_type}]
         return self.value_indicators
         

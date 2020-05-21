@@ -12,11 +12,11 @@
   ],
   "scalers": {
     "restaurants":200,
-    "education":50,
-    "groceries":20,
-    "parks":50,
-    "housing":120000,
-    "employment":200000
+    "education":30,
+    "groceries":60,
+    "parks":100,
+    "housing":10000,
+    "employment":50000
   },
   "bboxes": {
     "amenities": [

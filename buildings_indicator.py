@@ -150,7 +150,7 @@ class BuildingsIndicator(Indicator):
             geogrid_props=json.loads(url.read().decode())
         self.cell_size=geogrid_props['header']['cellSize']
         self.max_result_per_worker=250000
-        self.min_result_per_worker=200000
+        self.min_result_per_worker=0
                 
     def train(self):
         comm_data=pd.read_csv(self.train_data_loc+'/2012_public_use_data_aug2016.csv')

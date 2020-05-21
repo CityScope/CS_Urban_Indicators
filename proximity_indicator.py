@@ -72,6 +72,7 @@ class ProxIndicator(Indicator):
         cityIO_get_url=self.host+'api/table/'+self.table_name
         with urllib.request.urlopen(cityIO_get_url+'/GEOGRID') as url:
             self.geogrid=json.loads(url.read().decode())
+        self.updatable_nodes=[((feat['properties']['interactive']) or (feat['properties']['static_new'])) for feat in self.geogrid['features']]
         self.geogrid_header=self.geogrid['properties']['header']
         self.geogrid_ll=[self.geogrid['features'][i][
                 'geometry']['coordinates'][0][0
@@ -242,8 +243,7 @@ class ProxIndicator(Indicator):
         self.affected_sample_nodes={} # to create the geojson
         self.affected_grid_nodes={} # to get the average accessibility. eg. from all housing cells
         for gi in range(len(self.geogrid_xy)):
-            if ((self.geogrid['features'][gi]['properties']['interactive']) or 
-                (self.geogrid['features'][gi]['properties']['static_new'])):
+            if self.updatable_nodes[gi]:
                 a_node='g'+str(gi)
                 affected_nodes=nx.ego_graph(rev_graph, a_node, radius=self.radius, center=True, 
                                             undirected=False, distance='weight').nodes
@@ -263,7 +263,8 @@ class ProxIndicator(Indicator):
                 'sample_lats': self.sample_lats,
 #                'scalers': self.scalers,
                 'affected_grid_nodes': self.affected_grid_nodes,
-                'affected_sample_nodes': self.affected_sample_nodes}        
+                'affected_sample_nodes': self.affected_sample_nodes,
+                'updatable_nodes': self.updatable_nodes}        
         json.dump(output, open(self.params_path, 'w'))
         
     def load_module(self):
@@ -280,6 +281,7 @@ class ProxIndicator(Indicator):
 #            self.scalers=params['scalers']
             self.affected_grid_nodes=params['affected_grid_nodes']
             self.affected_sample_nodes=params['affected_sample_nodes']
+            self.updatable_nodes=params['updatable_nodes']
         except:
             print('Parameters have not yet been saved. Preparing the model')
             self.prepare_model()
@@ -315,7 +317,7 @@ class ProxIndicator(Indicator):
 #            if not type(usage)==list:
 #                print('Usage value is not a list: '+str(usage))
 #                usage=[-1,-1]
-            if ((cell_data['interactive']) or (cell_data['name'] in ['MCS', 'Ford Campus'])):
+            if self.updatable_nodes[gi]:
                 this_grid_lu=cell_data['name']
                 if this_grid_lu in self.types_def:
                     all_lbcs=flatten_grid_cell_attributes(

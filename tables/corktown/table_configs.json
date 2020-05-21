@@ -11,11 +11,11 @@
     "employment"
   ],
   "scalers": {
-    "restaurants":200,
+    "restaurants":150,
     "education":30,
     "groceries":60,
     "parks":200,
-    "housing":10000,
+    "housing":6000,
     "employment":50000
   },
   "bboxes": {

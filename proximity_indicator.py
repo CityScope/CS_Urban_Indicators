@@ -38,16 +38,16 @@ class ProxIndicator(Indicator):
         self.radius=15 # minutes
         self.dummy_link_speed_met_min=2*1000/60
         self.host='https://cityio.media.mit.edu/'
-        self.pois_per_lu={
-                  'Residential': {'housing': 200},
-                  'Office Tower': {'employment': 1200},
-                  'Office': {'employment': 400},
-                  'Plaza': {'parks': 1},
-                  'Institutional': {'education': 1},
-                  'Retail': {'groceries': 1, 'restaurants': 2},
-                  'Park': {'parks': 4},
-                  'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
-                  'Service': {'parking': 100}}
+        # self.pois_per_lu={
+        #           'Residential': {'housing': 200},
+        #           'Office Tower': {'employment': 1200},
+        #           'Office': {'employment': 400},
+        #           'Plaza': {'parks': 1},
+        #           'Institutional': {'education': 1},
+        #           'Retail': {'groceries': 1, 'restaurants': 2},
+        #           'Park': {'parks': 4},
+        #           'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
+        #           'Service': {'parking': 100}}
         self.lbcs_to_pois={
                 '7240': 'parks',
                 "4100": 'education',

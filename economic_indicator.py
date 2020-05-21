@@ -103,7 +103,7 @@ class EconomicIndicator(EconomicIndicatorBase):
 #        base_ouput=self.get_total_output(self.base_industry_composition)
         output=self.get_total_output(industry_composition)
         max_output=3e9
-        max_workers=25000
+        max_workers=20000
         print(output)
 #        total_output=base_ouput+new_ouput
         self.value_indicators=[{'value': min(1, avg_salary/80000), 'name': 'Average Earnings', 

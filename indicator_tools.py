@@ -181,38 +181,43 @@ class EconomicIndicatorBase(Indicator):
 
     def standardize_NAICS_for_RnD(self,I_data,NAICS_col = 'NAICS'):
         '''
-        Only takes NAICS at the 4 digit level.
+        Takes NAICS either at the 4 or 3 digit level.
         '''
-        if len(I_data[I_data[NAICS_col].str.len()!=4]):
-            raise NameError('Invalide NAICS 4-digit column')
         I_data = I_data.assign(NAICS_STD = I_data[NAICS_col].values)
+        inferred_NAICS_lvl = I_data[NAICS_col].str.len().max()
+        if (inferred_NAICS_lvl==4)|(inferred_NAICS_lvl==3):
+            B = (I_data['NAICS_STD'].str[0]=='3')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+            I_data.loc[I_data['NAICS_STD'].isin(['313','314','315','316']),'NAICS_STD'] = '313–16'
 
-        B = (I_data['NAICS_STD'].str[0]=='3')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
-        I_data.loc[I_data['NAICS_STD'].isin(['313','314','315','316']),'NAICS_STD'] = '313–16'
+            B = (I_data['NAICS_STD'].str[0]=='2')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
 
-        B = (I_data['NAICS_STD'].str[0]=='2')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+            B = (I_data['NAICS_STD'].str[0]=='4')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+            I_data.loc[I_data['NAICS_STD'].isin(['48','49']),'NAICS_STD'] = '48–49'
 
-        B = (I_data['NAICS_STD'].str[0]=='4')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
-        I_data.loc[I_data['NAICS_STD'].isin(['48','49']),'NAICS_STD'] = '48–49'
+            B = (I_data['NAICS_STD'].str[:2]=='51')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+            I_data.loc[B&(~I_data['NAICS_STD'].isin(['511','517','518'])),'NAICS_STD'] = 'other 51'
 
-        B = (I_data['NAICS_STD'].str[:2]=='51')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
-        I_data.loc[B&(~I_data['NAICS_STD'].isin(['511','517','518'])),'NAICS_STD'] = 'other 51'
+            B = (I_data['NAICS_STD'].str[:2]=='52')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
 
-        B = (I_data['NAICS_STD'].str[:2]=='52')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+            B = (I_data['NAICS_STD'].str[:2]=='53')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+            I_data.loc[B&(~I_data['NAICS_STD'].isin(['533'])),'NAICS_STD'] = 'other 53'
 
-        B = (I_data['NAICS_STD'].str[:2]=='53')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
-        I_data.loc[B&(~I_data['NAICS_STD'].isin(['533'])),'NAICS_STD'] = 'other 53'
+            if inferred_NAICS_lvl==4:
+                B = (I_data['NAICS_STD'].str[:2]=='54')
+                I_data.loc[B&(~I_data['NAICS_STD'].isin(['5413','5415','5417'])),'NAICS_STD'] = 'other 54'
+            elif inferred_NAICS_lvl==3:
+                B = (I_data['NAICS_STD'].str[:2]=='54')
+                I_data.loc[B,'NAICS_STD'] = '541'
 
-        B = (I_data['NAICS_STD'].str[:2]=='54')
-        I_data.loc[B&(~I_data['NAICS_STD'].isin(['5413','5415','5417'])),'NAICS_STD'] = 'other 54'
-
-        I_data.loc[(I_data['NAICS_STD'].isin(['621','622','623'])),'NAICS_STD'] = '621–23'
+            I_data.loc[(I_data['NAICS_STD'].isin(['621','622','623'])),'NAICS_STD'] = '621–23'
+        else:
+            raise NameError('Invalid NAICS; should be either 3 or 4 digit level')
         return I_data['NAICS_STD'].values
 
 

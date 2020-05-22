@@ -23,6 +23,10 @@ class InnoIndicator(EconomicIndicatorBase):
 		self.sks_model = None
 		self.kno_model = None
 		self.RnD_pc    = None
+
+		self.kno_bounds = [-12,-7]
+		self.rnd_bounds = [3,6]
+		self.sks_bounds = [-11,-5]
 		
 	def return_indicator(self, geogrid_data):
 		industry_composition  = self.grid_to_industries(geogrid_data)
@@ -84,8 +88,8 @@ class InnoIndicator(EconomicIndicatorBase):
 		knowledge_composition = pd.DataFrame([knowledge_composition])
 		value = self.kno_model.predict(knowledge_composition)[0]
 		if self.normalize:
-			bounds = [-12,-7]
-			value = self.normalize_value(value,bounds)
+			
+			value = self.normalize_value(value,self.kno_bounds)
 		return value
 
 	def RNDindicator(self,industry_composition):
@@ -116,8 +120,8 @@ class InnoIndicator(EconomicIndicatorBase):
 		RnD = (industry_composition_df['TOT_EMP']*industry_composition_df['RnD_pc']).sum()/industry_composition_df['TOT_EMP'].sum()
 		value = np.log10(RnD+1)
 		if self.normalize:
-			bounds = [3,6]
-			value = self.normalize_value(value,bounds)
+			
+			value = self.normalize_value(value,self.rnd_bounds)
 		return value
 
 
@@ -148,8 +152,7 @@ class InnoIndicator(EconomicIndicatorBase):
 		skill_composition = pd.DataFrame([skill_composition])
 		value = self.sks_model.predict(skill_composition)[0]
 		if self.normalize:
-			bounds = [-11,-5]
-			value = self.normalize_value(value,bounds)
+			value = self.normalize_value(value,self.sks_bounds)
 		return value
 
 	def load_module(self):

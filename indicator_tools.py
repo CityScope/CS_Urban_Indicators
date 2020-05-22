@@ -11,7 +11,7 @@ import geopandas as gpd
 import requests
 import os
 from bs4 import BeautifulSoup
-from APICalls import ACSCall,patentsViewDownload,load_zipped_excel
+from APICalls import ACSCall,patentsViewDownload,load_zipped_excel,CBPCall
 from download_shapeData import SHAPES_PATH
 from toolbox import Handler, Indicator
 import pandas as pd
@@ -246,6 +246,8 @@ class DataLoader:
         self.RnD   = None
         self.IO_data = None
 
+        self.emp_msa_ind = None
+
         self.skills          = None
         self.knowledge       = None
         self.msa_skills      = None
@@ -468,6 +470,15 @@ class DataLoader:
             emp = emp.groupby(['GEOID','SELECTED_LEVEL']).sum()[['TOT_EMP']].reset_index()
             emp = emp[emp['GEOID'].isin(set(msas['GEOID']))]
             self.emp_msa = emp
+
+    def load_MSA_emp_byInd(self):
+        '''
+        Loads employment by industry for each MSA.
+        '''
+        self.load_MSA_data()
+        df = CBPCall(NAICS_lvl=3).rename(columns={'metropolitan statistical area/micropolitan statistical area':'MSA'})
+        df = df[df['MSA'].isin(set(self.pop_msa['GEOID']))]
+        self.emp_msa_ind = df
 
 
     def load_ZIP_data_byInd(self,year = '2016'):

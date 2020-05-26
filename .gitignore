@@ -27,7 +27,6 @@ tables/shapes/*
 
 # Ignore files in innovation_data directory, except for the fitted models
 tables/innovation_data/*
-!tables/innovation_data/sks_coefs.csv
-!tables/innovation_data/kno_coefs.csv
 !tables/innovation_data/*.joblib
+!tables/innovation_data/innovation_marginal_effect.csv
 

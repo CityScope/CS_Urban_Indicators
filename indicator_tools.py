@@ -11,7 +11,7 @@ import geopandas as gpd
 import requests
 import os
 from bs4 import BeautifulSoup
-from APICalls import ACSCall,patentsViewDownload,load_zipped_excel
+from APICalls import ACSCall,patentsViewDownload,load_zipped_excel,CBPCall
 from download_shapeData import SHAPES_PATH
 from toolbox import Handler, Indicator
 import pandas as pd
@@ -181,38 +181,43 @@ class EconomicIndicatorBase(Indicator):
 
     def standardize_NAICS_for_RnD(self,I_data,NAICS_col = 'NAICS'):
         '''
-        Only takes NAICS at the 4 digit level.
+        Takes NAICS either at the 4 or 3 digit level.
         '''
-        if len(I_data[I_data[NAICS_col].str.len()!=4]):
-            raise NameError('Invalide NAICS 4-digit column')
         I_data = I_data.assign(NAICS_STD = I_data[NAICS_col].values)
+        inferred_NAICS_lvl = I_data[NAICS_col].str.len().max()
+        if (inferred_NAICS_lvl==4)|(inferred_NAICS_lvl==3):
+            B = (I_data['NAICS_STD'].str[0]=='3')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+            I_data.loc[I_data['NAICS_STD'].isin(['313','314','315','316']),'NAICS_STD'] = '313–16'
 
-        B = (I_data['NAICS_STD'].str[0]=='3')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
-        I_data.loc[I_data['NAICS_STD'].isin(['313','314','315','316']),'NAICS_STD'] = '313–16'
+            B = (I_data['NAICS_STD'].str[0]=='2')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
 
-        B = (I_data['NAICS_STD'].str[0]=='2')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+            B = (I_data['NAICS_STD'].str[0]=='4')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+            I_data.loc[I_data['NAICS_STD'].isin(['48','49']),'NAICS_STD'] = '48–49'
 
-        B = (I_data['NAICS_STD'].str[0]=='4')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
-        I_data.loc[I_data['NAICS_STD'].isin(['48','49']),'NAICS_STD'] = '48–49'
+            B = (I_data['NAICS_STD'].str[:2]=='51')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+            I_data.loc[B&(~I_data['NAICS_STD'].isin(['511','517','518'])),'NAICS_STD'] = 'other 51'
 
-        B = (I_data['NAICS_STD'].str[:2]=='51')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
-        I_data.loc[B&(~I_data['NAICS_STD'].isin(['511','517','518'])),'NAICS_STD'] = 'other 51'
+            B = (I_data['NAICS_STD'].str[:2]=='52')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
 
-        B = (I_data['NAICS_STD'].str[:2]=='52')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:2]
+            B = (I_data['NAICS_STD'].str[:2]=='53')
+            I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
+            I_data.loc[B&(~I_data['NAICS_STD'].isin(['533'])),'NAICS_STD'] = 'other 53'
 
-        B = (I_data['NAICS_STD'].str[:2]=='53')
-        I_data.loc[B,'NAICS_STD'] = I_data[B]['NAICS_STD'].str[:3]
-        I_data.loc[B&(~I_data['NAICS_STD'].isin(['533'])),'NAICS_STD'] = 'other 53'
+            if inferred_NAICS_lvl==4:
+                B = (I_data['NAICS_STD'].str[:2]=='54')
+                I_data.loc[B&(~I_data['NAICS_STD'].isin(['5413','5415','5417'])),'NAICS_STD'] = 'other 54'
+            elif inferred_NAICS_lvl==3:
+                B = (I_data['NAICS_STD'].str[:2]=='54')
+                I_data.loc[B,'NAICS_STD'] = '541'
 
-        B = (I_data['NAICS_STD'].str[:2]=='54')
-        I_data.loc[B&(~I_data['NAICS_STD'].isin(['5413','5415','5417'])),'NAICS_STD'] = 'other 54'
-
-        I_data.loc[(I_data['NAICS_STD'].isin(['621','622','623'])),'NAICS_STD'] = '621–23'
+            I_data.loc[(I_data['NAICS_STD'].isin(['621','622','623'])),'NAICS_STD'] = '621–23'
+        else:
+            raise NameError('Invalid NAICS; should be either 3 or 4 digit level')
         return I_data['NAICS_STD'].values
 
 
@@ -240,6 +245,8 @@ class DataLoader:
         self.RECPI = None
         self.RnD   = None
         self.IO_data = None
+
+        self.emp_msa_ind = None
 
         self.skills          = None
         self.knowledge       = None
@@ -463,6 +470,15 @@ class DataLoader:
             emp = emp.groupby(['GEOID','SELECTED_LEVEL']).sum()[['TOT_EMP']].reset_index()
             emp = emp[emp['GEOID'].isin(set(msas['GEOID']))]
             self.emp_msa = emp
+
+    def load_MSA_emp_byInd(self):
+        '''
+        Loads employment by industry for each MSA.
+        '''
+        self.load_MSA_data()
+        df = CBPCall(NAICS_lvl=3).rename(columns={'metropolitan statistical area/micropolitan statistical area':'MSA'})
+        df = df[df['MSA'].isin(set(self.pop_msa['GEOID']))]
+        self.emp_msa_ind = df
 
 
     def load_ZIP_data_byInd(self,year = '2016'):

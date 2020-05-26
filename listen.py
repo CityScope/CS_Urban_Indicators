@@ -42,7 +42,7 @@ def main():
             ])
     
     comp_I = CompositeIndicator(mean,
-                               selected_indicators=['District-knowledge','District-skills','District-funding'],
+                               selected_indicators=['Knowledge','Skills','R&D Funding'],
                                name='Innovation Potential')
     
     comp_M = CompositeIndicator(mean,
@@ -50,12 +50,12 @@ def main():
                                name='Sustainable Mobility')
     
     comp_E = CompositeIndicator(mean,
-                               selected_indicators=['Average Earnings','Industry Output','Employment Density'],
+                               selected_indicators=['Average Salary','Productivity','Employment Density', 'Diversity Jobs'],
                                name='Economic Performance')
     
     comp_B = CompositeIndicator(mean,
-                           selected_indicators=['Commercial Energy Performance','Residential Energy Performance', 'Mobility CO2 Performance'],
-                           name='Energy Performance')
+                           selected_indicators=['Buildings Energy Performance'],
+                           name='Sustainable Buildings')
     
     comp_SW = CompositeIndicator(mean,
                        selected_indicators=['Access to housing','Access to restaurants', 

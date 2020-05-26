@@ -235,10 +235,11 @@ class BuildingsIndicator(Indicator):
             comm_energy_score=1-max(0, min(1, norm_avg_energy_per_worker)) 
         else:
             comm_energy_score=0.5
-        self.value_indicators=[{'name': 'Commercial Energy Performance', 'value': comm_energy_score,
+        self.value_indicators=[{'name': 'Buildings Energy Performance', 'value': comm_energy_score,
                 'viz_type': self.viz_type},
-                {'name': 'Residential Energy Performance', 'value': comm_energy_score,
-                'viz_type': self.viz_type}]
+#                {'name': 'Residential Energy Performance', 'value': comm_energy_score,
+#                'viz_type': self.viz_type}
+                ]
         return self.value_indicators
 def main():
 #if True:

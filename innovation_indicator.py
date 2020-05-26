@@ -34,9 +34,9 @@ class InnoIndicator(EconomicIndicatorBase):
 		knowledge = self.KNOindicator(knowledge_composition)
 		RnD       = self.RNDindicator(industry_composition)
 		out = [
-				{'name':'District-knowledge','value':knowledge,'category':'innovation','viz_type': self.viz_type},
-				{'name':'District-skills','value':skills,'category':'innovation','viz_type': self.viz_type},
-				{'name':'District-funding','value':RnD,'category':'innovation','viz_type': self.viz_type}
+				{'name':'Knowledge','value':knowledge,'category':'innovation','viz_type': self.viz_type},
+				{'name':'Skills','value':skills,'category':'innovation','viz_type': self.viz_type},
+				{'name':'R&D Funding','value':RnD,'category':'innovation','viz_type': self.viz_type}
 			  ]
 		return out
 

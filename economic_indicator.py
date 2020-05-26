@@ -106,9 +106,9 @@ class EconomicIndicator(EconomicIndicatorBase):
         max_workers=20000
         print(output)
 #        total_output=base_ouput+new_ouput
-        self.value_indicators=[{'value': min(1, avg_salary/80000), 'name': 'Average Earnings', 
+        self.value_indicators=[{'value': min(1, avg_salary/80000), 'name': 'Average Salary', 
                  'viz_type': self.viz_type},
-                {'value': min(1, output/(max_output)), 'name': 'Industry Output', 
+                {'value': min(1, output/(max_output)), 'name': 'Productivity', 
                  'viz_type': self.viz_type},
                  {'value': min(1, num_workers/max_workers), 'name': 'Employment Density', 
                  'viz_type': self.viz_type}]

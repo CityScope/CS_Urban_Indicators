@@ -658,6 +658,8 @@ class Indicator:
 		'''
 		geogrid_props = handler.geogrid_props
 		self.types_def = geogrid_props['types']
+		if 'static_types' in geogrid_props:
+			self.types_def.update(geogrid_props['static_types'])
 		self.geogrid_header = geogrid_props['header']
 
 	def restructure(self,geogrid_data):

@@ -691,7 +691,7 @@ class DataLoader:
 def flatten_grid_cell_attributes(type_def, height, attribute_name, 
                                  area_per_floor, return_units='capacity'):
     if isinstance(height, list):
-        height=height[1]
+        height=height[-1]
     grid_cell_total={}
     if type_def[attribute_name] is not None:
         if 'sqm_pperson' in type_def:          

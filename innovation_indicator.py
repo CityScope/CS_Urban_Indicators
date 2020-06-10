@@ -40,7 +40,7 @@ class InnoIndicator(EconomicIndicatorBase):
 		out = [
 				{'name':'Knowledge','value':knowledge['norm'],'raw_value':knowledge['raw'],'category':'innovation','viz_type': self.viz_type, 'units': None},
 				{'name':'Skills','value':skills['norm'],'raw_value':skills['raw'],'category':'innovation','viz_type': self.viz_type, 'units': None},
-				{'name':'R&D Funding','value':RnD['norm'],'raw_value':RnD['raw'],'category':'innovation','viz_type': self.viz_type, 'units': None}
+				{'name':'R&D Funding','value':RnD['norm'],'raw_value':RnD['raw'],'category':'innovation','viz_type': self.viz_type, 'units': 'Millions of US Dollars'}
 			  ]
 		return out
 
@@ -115,8 +115,9 @@ class InnoIndicator(EconomicIndicatorBase):
 
 		industry_composition_df = pd.merge(industry_composition_df,RnD_pc)
 		RnD = (industry_composition_df['TOT_EMP']*industry_composition_df['RnD_pc']).sum()/industry_composition_df['TOT_EMP'].sum()
-		raw_value = np.log10(RnD+1)
-		norm_value = self.normalize_value(raw_value,self.rnd_bounds)
+		raw_value = RnD
+		raw_value_log = np.log10(RnD+1)
+		norm_value = self.normalize_value(raw_value_log,self.rnd_bounds)
 		return {'raw': raw_value, 'norm': norm_value}
 
 

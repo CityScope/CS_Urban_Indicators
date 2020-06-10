@@ -36,12 +36,12 @@ class DiversityIndicator(EconomicIndicatorBase):
         third_diversity=shannon_equitability_score([third_place_species_counts[code] for code in third_place_species_counts])
         edu_diversity=shannon_equitability_score([education_species_counts[code] for code in education_species_counts])
         
-        return [{'name': 'Diversity Jobs', 'value': job_diversity, 
-                 'viz_type': self.viz_type},
-                {'name': 'Diveristy Third Places', 'value': third_diversity, 
-                 'viz_type': self.viz_type},
-                 {'name': 'Diveristy Education', 'value': edu_diversity, 
-                 'viz_type': self.viz_type}]
+        return [{'name': 'Diversity Jobs', 'value': job_diversity,'raw_value': job_diversity, 
+                 'viz_type': self.viz_type, 'units': None},
+                {'name': 'Diveristy Third Places', 'value': third_diversity, 'raw_value': third_diversity, 
+                 'viz_type': self.viz_type, 'units': None},
+                 {'name': 'Diveristy Education', 'value': edu_diversity, 'raw_value': edu_diversity,  
+                 'viz_type': self.viz_type, 'units': None}]
         
 
 def main():

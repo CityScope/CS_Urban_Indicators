@@ -25,6 +25,7 @@ class AggregateIndicator(Indicator):
                 if indicator_value['name'] in agg_obj['names']:
                     values_to_agg.extend([indicator_value['value']])
         return [{'name': self.name, 'value': self.agg_fun(values_to_agg),
+                'raw_value': None,'units': None,
                 'viz_type': self.viz_type}]
     
 

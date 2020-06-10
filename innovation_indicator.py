@@ -5,12 +5,11 @@ import joblib
 from indicator_tools import DataLoader, EconomicIndicatorBase
 
 class InnoIndicator(EconomicIndicatorBase):
-	def setup(self,occLevel=3,saveData=True,modelPath='tables/innovation_data',quietly=True,normalize=True):
+	def setup(self,occLevel=3,saveData=True,modelPath='tables/innovation_data',quietly=True):
 
 		self.name       = 'Innovation-Potential'
 		self.occLevel   = (occLevel if occLevel<=2 else occLevel+1) 
 		self.modelPath  = modelPath
-		self.normalize  = normalize
 
 		self.sks_model_path = os.path.join(modelPath,'sks_model.joblib')
 		self.kno_model_path = os.path.join(modelPath,'kno_model.joblib')
@@ -39,9 +38,9 @@ class InnoIndicator(EconomicIndicatorBase):
 		knowledge = self.KNOindicator(knowledge_composition)
 		RnD       = self.RNDindicator(industry_composition)
 		out = [
-				{'name':'Knowledge','value':knowledge,'category':'innovation','viz_type': self.viz_type},
-				{'name':'Skills','value':skills,'category':'innovation','viz_type': self.viz_type},
-				{'name':'R&D Funding','value':RnD,'category':'innovation','viz_type': self.viz_type}
+				{'name':'Knowledge','value':knowledge['norm'],'raw_value':knowledge['raw'],'category':'innovation','viz_type': self.viz_type, 'units': None},
+				{'name':'Skills','value':skills['norm'],'raw_value':skills['raw'],'category':'innovation','viz_type': self.viz_type, 'units': None},
+				{'name':'R&D Funding','value':RnD['norm'],'raw_value':RnD['raw'],'category':'innovation','viz_type': self.viz_type, 'units': None}
 			  ]
 		return out
 
@@ -86,11 +85,9 @@ class InnoIndicator(EconomicIndicatorBase):
 		'''
 		self.load_module()
 		knowledge_composition = pd.DataFrame([knowledge_composition])
-		value = self.kno_model.predict(knowledge_composition)[0]
-		if self.normalize:
-			
-			value = self.normalize_value(value,self.kno_bounds)
-		return value
+		raw_value = self.kno_model.predict(knowledge_composition)[0]
+		norm_value = self.normalize_value(raw_value,self.kno_bounds)
+		return {'raw': raw_value, 'norm': norm_value}
 
 	def RNDindicator(self,industry_composition):
 		'''
@@ -118,11 +115,9 @@ class InnoIndicator(EconomicIndicatorBase):
 
 		industry_composition_df = pd.merge(industry_composition_df,RnD_pc)
 		RnD = (industry_composition_df['TOT_EMP']*industry_composition_df['RnD_pc']).sum()/industry_composition_df['TOT_EMP'].sum()
-		value = np.log10(RnD+1)
-		if self.normalize:
-			
-			value = self.normalize_value(value,self.rnd_bounds)
-		return value
+		raw_value = np.log10(RnD+1)
+		norm_value = self.normalize_value(raw_value,self.rnd_bounds)
+		return {'raw': raw_value, 'norm': norm_value}
 
 
 	def SKSindicator(self,skill_composition):
@@ -150,10 +145,9 @@ class InnoIndicator(EconomicIndicatorBase):
 		'''
 		self.load_module()
 		skill_composition = pd.DataFrame([skill_composition])
-		value = self.sks_model.predict(skill_composition)[0]
-		if self.normalize:
-			value = self.normalize_value(value,self.sks_bounds)
-		return value
+		raw_value = self.sks_model.predict(skill_composition)[0]
+		norm_value = self.normalize_value(raw_value,self.sks_bounds)
+		return {'raw': raw_value, 'norm': norm_value}
 
 	def load_module(self):
 		'''

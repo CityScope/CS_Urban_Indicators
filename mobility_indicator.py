@@ -52,7 +52,7 @@ class MobilityIndicator(Indicator):
     def normalised_prediction(self, model, X_in, y_max, y_min):
         y_pred=model.predict(X_in)[0]
         print(y_pred)
-        return max(0, min(1,(y_pred-y_min)/(y_max-y_min)))
+        return {'raw':y_pred, 'norm': max(0, min(1,(y_pred-y_min)/(y_max-y_min)))}
         
     def load_module(self):
         print('loading')
@@ -104,15 +104,14 @@ class MobilityIndicator(Indicator):
                 x=0               
             X_pa.append(x)
         print(self.co2_model_features)
-        co2_norm=self.normalised_prediction(self.co2_model, np.array(X_co2).reshape(1, -1), 
+        co2=self.normalised_prediction(self.co2_model, np.array(X_co2).reshape(1, -1), 
                                             self.max_co2, self.min_co2)
-        pa_norm=self.normalised_prediction(self.pa_model, np.array(X_pa).reshape(1, -1), 
+        pa=self.normalised_prediction(self.pa_model, np.array(X_pa).reshape(1, -1), 
                                            self.max_pa, self.min_pa)
-        print(pa_norm)
-        self.value_indicators=[{'name': 'Mobility CO2 Performance', 'value': 1-co2_norm, 
-                 'viz_type': self.viz_type},
-                {'name': 'Mobility Health Impacts', 'value': pa_norm, 
-                 'viz_type': self.viz_type}]
+        self.value_indicators=[{'name': 'Mobility CO2 Performance', 'value': 1-co2['norm'], 
+                 'raw_value':co2['raw'],'viz_type': self.viz_type, 'units': 'kg/day'},
+                {'name': 'Mobility Health Impacts', 'value': pa['norm'], 
+                 'raw_value':pa['raw'], 'viz_type': self.viz_type, 'units': 'kg/day'}]
         return self.value_indicators
         
     

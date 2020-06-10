@@ -376,18 +376,17 @@ class ProxIndicator(Indicator):
         self.value_indicators=[]
         # TODO: more generic way of deciding the "from" grids
         for poi in self.from_employ_pois:
-            this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
+            this_indicator_raw=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'MCS', 'Ford Campus','Office', 'Light Industrial', 'Industrial']])/self.scalers[poi]
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value, 'viz_type': self.viz_type})
+                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'MCS', 'Ford Campus','Office', 'Light Industrial', 'Industrial']])
+            this_indicator_norm=min(1, this_indicator_raw/self.scalers[poi])
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw,'viz_type': self.viz_type, 'units': None})
         for poi in self.from_housing_pois:
-            this_indicator_value=np.mean([grid_nodes_acc[str(g)][poi
+            this_indicator_raw=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Residential', 'Residential Low Density', 'Mix-use']])/self.scalers[poi]
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_value, 'viz_type': self.viz_type}) 
-#        print(result)
-        for v in self.value_indicators:
-            v['value']=min(1, v['value'])
+                        ) if geogrid_data[g]['name'] in ['Residential', 'Residential Low Density', 'Mix-use']])
+            this_indicator_norm=min(1, this_indicator_raw/self.scalers[poi])
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw, 'viz_type': self.viz_type, 'units': None}) 
         if self.indicator_type in ['heatmap', 'access']:            
             grid_geojson=self.create_access_geojson(sample_nodes_acc)
             return grid_geojson

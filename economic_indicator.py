@@ -99,19 +99,20 @@ class EconomicIndicator(EconomicIndicatorBase):
         industry_composition=self.grid_to_industries(geogrid_data)
         worker_composition   = self.industries_to_occupations(industry_composition)
         num_workers=sum([worker_composition[code] for code in worker_composition])
+        num_workers_per_km_sq=num_workers/4
         avg_salary=self.get_avg_salary(worker_composition)
 #        base_ouput=self.get_total_output(self.base_industry_composition)
         output=self.get_total_output(industry_composition)
         max_output=3e9
-        max_workers=20000
+        max_workers_per_km_sq=5000
         print(output)
 #        total_output=base_ouput+new_ouput
-        self.value_indicators=[{'value': min(1, avg_salary/80000), 'name': 'Average Salary', 
-                 'viz_type': self.viz_type},
+        self.value_indicators=[{'value': min(1, avg_salary/80000), 'raw_value': avg_salary, 'name': 'Average Salary', 
+                 'viz_type': self.viz_type, 'units': 'USD'},
                 {'value': min(1, output/(max_output)), 'name': 'Productivity', 
-                 'viz_type': self.viz_type},
-                 {'value': min(1, num_workers/max_workers), 'name': 'Employment Density', 
-                 'viz_type': self.viz_type}]
+                 'viz_type': self.viz_type, 'raw_value': output, 'units': 'USD'},
+                 {'value': min(1, num_workers_per_km_sq/max_workers_per_km_sq), 'raw_value': num_workers_per_km_sq,'name': 'Employment Density', 
+                 'viz_type': self.viz_type, 'units': 'employees/sq_km'}]
         return self.value_indicators
         
 #    def return_baseline(self):

@@ -1,22 +1,21 @@
 {
   "local_epsg": "2253",
-  "access_osm_pois": [
-    "restaurants",
-    "education",
-    "groceries",
-    "parks"
-  ],
+  "access_osm_pois": [],
   "access_zonal_pois": [
     "housing",
-    "employment"
+    "employment",
+    "restaurants",
+    "groceries",
+    "parks",
+    "education"
   ],
   "scalers": {
-    "restaurants":150,
-    "education":30,
-    "groceries":60,
-    "parks":200,
-    "housing":6000,
-    "employment":50000
+    "education": 1000,
+    "parks": 400000,
+    "housing": 8000,
+    "employment": 60000,
+    "restaurants": 40000,
+    "groceries": 5000
   },
   "bboxes": {
     "amenities": [

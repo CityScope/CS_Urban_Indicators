@@ -19,6 +19,15 @@ import requests
 from toolbox import Handler, Indicator
 from indicator_tools import flatten_grid_cell_attributes
 
+def approx_shape_centroid(geometry):
+    if geometry['type']=='Polygon':
+        centroid=list(np.mean(geometry['coordinates'][0], axis=0))
+        return centroid
+    elif geometry['type']=='MultiPolygon':
+        centroid=list(np.mean(geometry['coordinates'][0][0], axis=0))
+        return centroid
+    else:
+        print('Unknown geometry type')
 
 class ProxIndicator(Indicator):
     def setup(self,*args,**kwargs):
@@ -29,7 +38,7 @@ class ProxIndicator(Indicator):
         self.table_config_file_path='./tables/{}/table_configs.json'.format(self.table_name)
         self.ua_nodes_path='./tables/{}/geometry/access_network_nodes.csv'.format(self.table_name)
         self.ua_edges_path='./tables/{}/geometry/access_network_edges.csv'.format(self.table_name)
-        self.zones_path='./tables/{}/geometry/model_area.geojson'.format(self.table_name)
+        self.zones_path='./tables/{}/geometry/corktown_parcels_cs_types.geojson'.format(self.table_name)
         self.params_path='./tables/{}/accessibility_params.json'.format(self.table_name)
         self.table_configs=json.load(open(self.table_config_file_path))
         self.scalers=self.table_configs['scalers']
@@ -49,10 +58,11 @@ class ProxIndicator(Indicator):
         #           'Mix-use': {'restaurants': 2, 'shopping': 1, 'nightlife': 1, 'groceries': 1},
         #           'Service': {'parking': 100}}
         self.lbcs_to_pois={
+                '1100': 'housing',
                 '7240': 'parks',
                 "4100": 'education',
                 '2100': 'groceries',
-                '2200': 'restaurants',               
+                '2200': 'restaurants',                  
                 }
         
     def prepare_model(self):
@@ -96,6 +106,8 @@ class ProxIndicator(Indicator):
         # get zonal POI data (eg. housing per census tract)
         if self.table_configs['access_zonal_pois']:
             self.zones = json.load(open(self.zones_path))
+            for feat in self.zones['features']:
+                feat['properties']['centroid']=approx_shape_centroid(feat['geometry'])
             
     def create_transport_network(self):
         print('Building the base transport network')
@@ -123,15 +135,20 @@ class ProxIndicator(Indicator):
                         self.base_amenities[tag]['y'][ai]])[1]]['id_int']
                 self.pois_at_base_nodes[nearest_node][tag]+=1
         if self.table_configs['access_zonal_pois']:
+            count=0
             for f in self.zones['features']:
-                centroid_xy=pyproj.transform(self.wgs, self.projection,f['properties']['centroid'][0], 
-                                             f['properties']['centroid'][1])
-                distance, nearest_node_ind=kdtree_base_nodes.query(centroid_xy)
-                nearest_node=self.nodes.iloc[nearest_node_ind]['id_int']
-                if distance<1000: #(because some zones are outside the network area)
-                    for poi_type in self.table_configs['access_zonal_pois']:
-                        if poi_type in f['properties']:
-                            self.pois_at_base_nodes[nearest_node][poi_type]+=f['properties'][poi_type]        
+                count+=1
+                if count%1000==0:
+                    print('{} of {} zones'.format(count, len(self.zones['features'])))
+                if any(f['properties'][poi_type]>0 for poi_type in self.table_configs['access_zonal_pois']):
+                    centroid_xy=pyproj.transform(self.wgs, self.projection,f['properties']['centroid'][0], 
+                                                 f['properties']['centroid'][1])
+                    distance, nearest_node_ind=kdtree_base_nodes.query(centroid_xy)
+                    nearest_node=self.nodes.iloc[nearest_node_ind]['id_int']
+                    if distance<500: #(because some parcels are outside the network area)
+                        for poi_type in self.table_configs['access_zonal_pois']:
+                            if poi_type in f['properties']:
+                                self.pois_at_base_nodes[nearest_node][poi_type]+=f['properties'][poi_type]        
         # Add links for the new network defined by the interactive area  
         #print('Adding dummy links for the grid network') 
         interactive_meta_cells={i:i for i in range(len(self.geogrid['features']))}
@@ -323,23 +340,23 @@ class ProxIndicator(Indicator):
                     all_lbcs=flatten_grid_cell_attributes(
                             type_def=self.types_def[this_grid_lu], height=cell_data['height'],
                             attribute_name='LBCS', area_per_floor=self.geogrid_header['cellSize']**2,
-                            return_units='floors') 
+                            return_units='capacity') 
                     new_jobs=flatten_grid_cell_attributes(
                             type_def=self.types_def[this_grid_lu], height=cell_data['height'],
                             attribute_name='NAICS', area_per_floor=self.geogrid_header['cellSize']**2,
                             return_units='capacity')
                     n_new_jobs=sum([new_jobs[code] for code in new_jobs])
-                    if '1100' in all_lbcs:
-                        new_housing_capacity=all_lbcs['1100']
-                    else:
-                        new_housing_capacity=0
+#                    if '1100' in all_lbcs:
+#                        new_housing_capacity=all_lbcs['1100']
+#                    else:
+#                        new_housing_capacity=0
                     sample_nodes_to_update=self.affected_sample_nodes[str(gi)]
                     grid_nodes_to_update=self.affected_grid_nodes[str(gi)]
                     for n in sample_nodes_to_update:
-                        sample_nodes_acc[n.split('s')[1]]['housing']+=new_housing_capacity
+#                        sample_nodes_acc[n.split('s')[1]]['housing']+=new_housing_capacity
                         sample_nodes_acc[n.split('s')[1]]['employment']+=n_new_jobs
                     for n in grid_nodes_to_update:
-                        grid_nodes_acc[n.split('g')[1]]['housing']+=new_housing_capacity
+#                        grid_nodes_acc[n.split('g')[1]]['housing']+=new_housing_capacity
                         grid_nodes_acc[n.split('g')[1]]['employment']+=n_new_jobs
                     if any (code in self.lbcs_to_pois for code in all_lbcs):
                         for lbcs in all_lbcs:

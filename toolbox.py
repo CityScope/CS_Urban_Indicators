@@ -710,5 +710,5 @@ class CompositeIndicator(Indicator):
 		except:
 			indicator_values = np.array([v for v in indicator_values.values()])
 			value = self.compose_function(indicator_values)
-		return [{'name': self.name, 'value': value, 'raw_value': None,'units': None,'viz_type': self.viz_type}]
+		return [{'name': self.name, 'value': float(value), 'raw_value': None,'units': None,'viz_type': self.viz_type}]
 

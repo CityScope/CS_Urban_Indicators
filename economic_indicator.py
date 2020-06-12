@@ -103,8 +103,8 @@ class EconomicIndicator(EconomicIndicatorBase):
         avg_salary=self.get_avg_salary(worker_composition)
 #        base_ouput=self.get_total_output(self.base_industry_composition)
         output=self.get_total_output(industry_composition)
-        max_output=3e9
-        max_workers_per_km_sq=5000
+        max_output=4e9
+        max_workers_per_km_sq=7500
         print(output)
 #        total_output=base_ouput+new_ouput
         self.value_indicators=[{'value': min(1, avg_salary/80000), 'raw_value': avg_salary, 'name': 'Average Salary', 

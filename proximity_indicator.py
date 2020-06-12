@@ -36,13 +36,15 @@ class ProxIndicator(Indicator):
         self.table_name= kwargs['table_name']
         self.osm_config_file_path='./osm_amenities.json'
         self.table_config_file_path='./tables/{}/table_configs.json'.format(self.table_name)
-        self.ua_nodes_path='./tables/{}/geometry/access_network_nodes.csv'.format(self.table_name)
-        self.ua_edges_path='./tables/{}/geometry/access_network_edges.csv'.format(self.table_name)
+        self.ua_nodes_path='./tables/{}/geometry/ped_nodes.csv'.format(self.table_name)
+        self.ua_edges_path='./tables/{}/geometry/ped_edges.csv'.format(self.table_name)
         self.zones_path='./tables/{}/geometry/corktown_parcels_cs_types.geojson'.format(self.table_name)
         self.params_path='./tables/{}/accessibility_params.json'.format(self.table_name)
         self.table_configs=json.load(open(self.table_config_file_path))
         self.scalers=self.table_configs['scalers']
         self.all_poi_types=[tag for tag in self.table_configs['access_osm_pois'] + self.table_configs['access_zonal_pois']]
+        self.employment_types=['Office Tower', 'Mix-use', 'MCS', 'Ford Campus','Office', 'Light Industrial', 'Industrial']
+        self.residential_types=['Residential', 'Residential Low Density', 'Mix-use']
         assert(all(poi in self.scalers for poi in self.all_poi_types))
         self.radius=15 # minutes
         self.dummy_link_speed_met_min=2*1000/60
@@ -93,15 +95,18 @@ class ProxIndicator(Indicator):
         self.geogrid_xy=[[self.geogrid_x[i], self.geogrid_y[i]] for i in range(len(self.geogrid_x))]
         
     def get_base_pois(self):
-        print('Getting OSM data')
-
-        osm_amenities=json.load(open(self.osm_config_file_path))['osm_pois']
-        tags_to_include=self.table_configs['access_osm_pois']
-        
-        tags={t: osm_amenities[t] for t in tags_to_include}
-        # To get all amenity data
-        bounds_all=self.table_configs['bboxes']['amenities']
-        self.base_amenities=get_osm_amenies(bounds_all, tags, self.wgs, self.projection)
+        if len(self.table_configs['access_osm_pois'])>0:
+            print('Getting OSM data')
+    
+            osm_amenities=json.load(open(self.osm_config_file_path))['osm_pois']
+            tags_to_include=self.table_configs['access_osm_pois']
+            
+            tags={t: osm_amenities[t] for t in tags_to_include}
+            # To get all amenity data
+            bounds_all=self.table_configs['bboxes']['amenities']
+            self.base_amenities=get_osm_amenies(bounds_all, tags, self.wgs, self.projection)
+        else:
+            self.base_amenities={}
         
         # get zonal POI data (eg. housing per census tract)
         if self.table_configs['access_zonal_pois']:
@@ -247,12 +252,14 @@ class ProxIndicator(Indicator):
         for gn in self.grid_nodes_acc_base:
             if int(gn)%200==0:
                 print('{} of {} geogrid nodes'.format(gn, len(self.grid_nodes_acc_base)))
-            isochrone_graph=nx.ego_graph(self.graph, 'g'+str(gn), radius=self.radius, center=True, 
-                                         undirected=False, distance='weight')
-            reachable_real_nodes=[n for n in isochrone_graph.nodes if n in self.pois_at_base_nodes]
-            for poi_type in self.all_poi_types:
-                self.grid_nodes_acc_base[gn][poi_type]=sum([self.pois_at_base_nodes[reachable_node][poi_type] 
-                                                    for reachable_node in reachable_real_nodes]) 
+            base_lu=self.geogrid['features'][int(gn)]['properties']['type']
+            if ((base_lu in self.employment_types+self.residential_types) or self.updatable_nodes[int(gn)]):
+                isochrone_graph=nx.ego_graph(self.graph, 'g'+str(gn), radius=self.radius, center=True, 
+                                             undirected=False, distance='weight')
+                reachable_real_nodes=[n for n in isochrone_graph.nodes if n in self.pois_at_base_nodes]
+                for poi_type in self.all_poi_types:
+                    self.grid_nodes_acc_base[gn][poi_type]=sum([self.pois_at_base_nodes[reachable_node][poi_type] 
+                                                        for reachable_node in reachable_real_nodes]) 
     def prepare_interatve_analysis(self):
         print('Preparing for interactve updates. May take a few minutes.') 
         rev_graph=self.graph.reverse()
@@ -337,12 +344,15 @@ class ProxIndicator(Indicator):
             if self.updatable_nodes[gi]:
                 this_grid_lu=cell_data['name']
                 if this_grid_lu in self.types_def:
+                    height=cell_data['height']
+                    if this_grid_lu=='Park':
+                        height=1
                     all_lbcs=flatten_grid_cell_attributes(
-                            type_def=self.types_def[this_grid_lu], height=cell_data['height'],
+                            type_def=self.types_def[this_grid_lu], height=height,
                             attribute_name='LBCS', area_per_floor=self.geogrid_header['cellSize']**2,
                             return_units='capacity') 
                     new_jobs=flatten_grid_cell_attributes(
-                            type_def=self.types_def[this_grid_lu], height=cell_data['height'],
+                            type_def=self.types_def[this_grid_lu], height=height,
                             attribute_name='NAICS', area_per_floor=self.geogrid_header['cellSize']**2,
                             return_units='capacity')
                     n_new_jobs=sum([new_jobs[code] for code in new_jobs])
@@ -395,15 +405,15 @@ class ProxIndicator(Indicator):
         for poi in self.from_employ_pois:
             this_indicator_raw=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Office Tower', 'Mix-use', 'MCS', 'Ford Campus','Office', 'Light Industrial', 'Industrial']])
+                        ) if geogrid_data[g]['name'] in self.employment_types])
             this_indicator_norm=min(1, this_indicator_raw/self.scalers[poi])
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw,'viz_type': self.viz_type, 'units': None})
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw,'viz_type': self.viz_type, 'units': 'Capacity'})
         for poi in self.from_housing_pois:
             this_indicator_raw=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
-                        ) if geogrid_data[g]['name'] in ['Residential', 'Residential Low Density', 'Mix-use']])
+                        ) if geogrid_data[g]['name'] in self.residential_types])
             this_indicator_norm=min(1, this_indicator_raw/self.scalers[poi])
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw, 'viz_type': self.viz_type, 'units': None}) 
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw, 'viz_type': self.viz_type, 'units': 'Capacity'}) 
         if self.indicator_type in ['heatmap', 'access']:            
             grid_geojson=self.create_access_geojson(sample_nodes_acc)
             return grid_geojson

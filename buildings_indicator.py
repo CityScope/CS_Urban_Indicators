@@ -149,8 +149,8 @@ class BuildingsIndicator(Indicator):
         with urllib.request.urlopen(GEOGRID_props_loc) as url:
             geogrid_props=json.loads(url.read().decode())
         self.cell_size=geogrid_props['header']['cellSize']
-        self.max_result_per_worker=250000
-        self.min_result_per_worker=0
+        self.max_result_per_worker=100000
+        self.min_result_per_worker=50000
                 
     def train(self):
         comm_data=pd.read_csv(self.train_data_loc+'/2012_public_use_data_aug2016.csv')
@@ -235,7 +235,7 @@ class BuildingsIndicator(Indicator):
             norm_avg_energy_per_worker=0
             avg_energy_per_worker=0
         self.value_indicators=[{'name': 'Buildings Energy Performance', 'value': norm_avg_energy_per_worker,
-                                'raw_value': avg_energy_per_worker, 'units': '\'000 Btu/person',
+                                'raw_value': avg_energy_per_worker, 'units': '\'000 Btu/person year',
                 'viz_type': self.viz_type},
 #                {'name': 'Residential Energy Performance', 'value': comm_energy_score,
 #                'viz_type': self.viz_type}

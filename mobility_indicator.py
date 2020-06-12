@@ -111,7 +111,7 @@ class MobilityIndicator(Indicator):
         self.value_indicators=[{'name': 'Mobility CO2 Performance', 'value': 1-co2['norm'], 
                  'raw_value':co2['raw'],'viz_type': self.viz_type, 'units': 'kg/day'},
                 {'name': 'Mobility Health Impacts', 'value': pa['norm'], 
-                 'raw_value':pa['raw'], 'viz_type': self.viz_type, 'units': 'kg/day'}]
+                 'raw_value':pa['raw'], 'viz_type': self.viz_type, 'units': 'mortality/year'}]
         return self.value_indicators
         
     

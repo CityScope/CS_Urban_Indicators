@@ -10,12 +10,12 @@
     "education"
   ],
   "scalers": {
-    "education": 1000,
-    "parks": 400000,
-    "housing": 8000,
-    "employment": 60000,
-    "restaurants": 40000,
-    "groceries": 5000
+    "education": 50,
+    "parks": 80000,
+    "housing": 1000,
+    "employment": 7000,
+    "restaurants": 1000,
+    "groceries": 250
   },
   "bboxes": {
     "amenities": [
@@ -30,6 +30,6 @@
     "row_margin_top": 70,
     "cell_width": 190,
     "cell_height": 150,
-    "stride": 5
+    "stride": 10
   }
 }

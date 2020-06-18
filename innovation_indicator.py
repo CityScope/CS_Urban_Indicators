@@ -23,9 +23,9 @@ class InnoIndicator(EconomicIndicatorBase):
 		self.kno_model = None
 		self.RnD_pc    = None
 
-		self.kno_bounds = [-12,-7]
-		self.rnd_bounds = [3,6]
-		self.sks_bounds = [-11,-5]
+		self.kno_bounds = [-11,-7]
+		self.rnd_bounds = [4,5]
+		self.sks_bounds = [-16,-5]
 		
 	def return_indicator(self, geogrid_data):
 		industry_composition  = self.grid_to_industries(geogrid_data)

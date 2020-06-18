@@ -30,16 +30,18 @@ class MobilityIndicator(Indicator):
         X_df=pd.DataFrame(data['X'])
         Y_df=pd.DataFrame(data['Y'])
         all_df=pd.concat([X_df, Y_df], axis=1)
-        numerical_cols=[col for col in X_df.columns]
+#        numerical_cols=[col for col in X_df.columns]
+        static_types=[k for k in self.types_def if k not in self.int_types_def]
+        numerical_cols=[col for col in X_df.columns if col not in static_types]
 #        neigh = LinearRegression(n_neighbors=3)
         self.co2_model, self.co2_model_features= fit_rf_regressor(
                 all_df, cat_cols=[], 
                 numerical_cols=numerical_cols, 
-                y_col='avg_co2', n_estimators=10)
+                y_col='avg_co2', n_estimators=50)
         self.pa_model, self.pa_model_features= fit_rf_regressor(
                 all_df, cat_cols=[], 
                 numerical_cols=numerical_cols, 
-                y_col='delta_f_physical_activity_pp', n_estimators=10)
+                y_col='delta_f_physical_activity_pp', n_estimators=50)
         co2_model_object={'model': self.co2_model, 'features': self.co2_model_features,
 #              'max': self.max_co2, 'min': self.min_co2
               }
@@ -70,10 +72,10 @@ class MobilityIndicator(Indicator):
         except:
             print('Model not yet trained. Training now')
             self.train()            
-        self.min_co2=2.5
-        self.max_co2=4
-        self.min_pa=0.007
-        self.max_pa=0.008
+        self.min_co2=5
+        self.max_co2=12
+        self.min_pa=0
+        self.max_pa=0.004
         
             
     def return_indicator(self, geogrid_data, future_mobility=1):
@@ -120,7 +122,7 @@ def main():
     H = Handler('corktown', quietly=False)
     H.add_indicator(M)
     
-    geogrid_data=H.geogrid_data()
+    geogrid_data=H.get_geogrid_data()
     
     M.return_indicator(geogrid_data)
 

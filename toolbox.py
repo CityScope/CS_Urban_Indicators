@@ -576,6 +576,7 @@ class Indicator:
 		self.requires_geometry = False
 		self.model_path = None
 		self.pickled_model = None
+		self.int_types_def=None
 		self.types_def=None
 		self.geogrid_header=None
 		self.is_composite = False
@@ -657,7 +658,8 @@ class Indicator:
 			Instantiated object of the Handler class.
 		'''
 		geogrid_props = handler.geogrid_props
-		self.types_def = geogrid_props['types']
+		self.int_types_def=geogrid_props['types']
+		self.types_def = self.int_types_def.copy()
 		if 'static_types' in geogrid_props:
 			self.types_def.update(geogrid_props['static_types'])
 		self.geogrid_header = geogrid_props['header']

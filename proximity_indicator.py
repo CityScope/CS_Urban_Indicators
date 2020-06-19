@@ -19,6 +19,7 @@ import requests
 from toolbox import Handler, Indicator
 from indicator_tools import flatten_grid_cell_attributes
 
+
 def approx_shape_centroid(geometry):
     if geometry['type']=='Polygon':
         centroid=list(np.mean(geometry['coordinates'][0], axis=0))
@@ -66,6 +67,7 @@ class ProxIndicator(Indicator):
                 '2100': 'groceries',
                 '2200': 'restaurants',                  
                 }
+        self.agg_pois={'3rd Places': ['restaurants', 'groceries']}
         
     def prepare_model(self):
         print('Preparing model')
@@ -333,6 +335,9 @@ class ProxIndicator(Indicator):
         return output_geojson
     
     def return_indicator(self, geogrid_data):
+# =============================================================================
+#         Get accessibility results for each node
+# =============================================================================
         sample_nodes_acc={n: {t:self.sample_nodes_acc_base[n][t] for t in self.all_poi_types
                               } for n in self.sample_nodes_acc_base}
         grid_nodes_acc={n: {t:self.grid_nodes_acc_base[n][t] for t in self.all_poi_types
@@ -377,43 +382,45 @@ class ProxIndicator(Indicator):
                                     sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
                                 for n in grid_nodes_to_update:
                                     grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
-                        
-                    
-                # if any lbcs in lbcs_to_pois
-                # get nodes to update
-                # for lbcs in all_lbcs:
-                # for poi in lbcs_to_pois[lbcs]
-                # n_to_add= lbcs_capacity
-                
-#                if this_grid_lu in self.pois_per_lu:
-#                    sample_nodes_to_update=self.affected_sample_nodes[str(gi)]
-#                    grid_nodes_to_update=self.affected_grid_nodes[str(gi)]
-#                    for poi in self.pois_per_lu[this_grid_lu]:
-#                        if poi in self.all_poi_types:
-#                            n_to_add=self.pois_per_lu[this_grid_lu][poi]
-#                            if n_to_add<1:
-#                                if random.uniform(0,1)<=n_to_add:
-#                                    n_to_add=1
-#                                else:
-#                                    n_to_add=0
-#                            for n in sample_nodes_to_update:
-#                                sample_nodes_acc[n.split('s')[1]][poi]+=n_to_add
-#                            for n in grid_nodes_to_update:
-#                                grid_nodes_acc[n.split('g')[1]][poi]+=n_to_add
-        self.value_indicators=[]
-        # TODO: more generic way of deciding the "from" grids
+
+# =============================================================================
+#       Compute the indicator values and/or create geojson
+# =============================================================================
+       
+        indicators={}
         for poi in self.from_employ_pois:
-            this_indicator_raw=np.mean([grid_nodes_acc[str(g)][poi
+            indicators[poi]={}
+            raw=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in self.employment_types])
-            this_indicator_norm=min(1, this_indicator_raw/self.scalers[poi])
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw,'viz_type': self.viz_type, 'units': 'Capacity'})
+            indicators[poi]['raw']=raw
+            indicators[poi]['norm']=min(1, raw/self.scalers[poi])
+        
         for poi in self.from_housing_pois:
-            this_indicator_raw=np.mean([grid_nodes_acc[str(g)][poi
+            indicators[poi]={}
+            raw=np.mean([grid_nodes_acc[str(g)][poi
                        ] for g in range(len(geogrid_data)
                         ) if geogrid_data[g]['name'] in self.residential_types])
-            this_indicator_norm=min(1, this_indicator_raw/self.scalers[poi])
-            self.value_indicators.append({'name': 'Access to {}'.format(poi), 'value': this_indicator_norm, 'raw_value': this_indicator_raw, 'viz_type': self.viz_type, 'units': 'Capacity'}) 
+            indicators[poi]['raw']=raw
+            indicators[poi]['norm']=min(1, raw/self.scalers[poi])
+
+        for agg_poi in self.agg_pois:
+            this_agg_indicator_raw=np.mean([indicators[poi]['raw'] for poi in self.agg_pois[agg_poi]])
+            this_agg_indicator_norm=np.mean([indicators[poi]['norm'] for poi in self.agg_pois[agg_poi]])
+#            this_agg_indicator_raw=np.sum([indicators[poi]['raw'] for poi in self.agg_pois[agg_poi]])
+#            this_agg_indicator_norm=this_agg_indicator_raw/(np.sum([self.scalers[poi] for poi in self.agg_pois[agg_poi]]))
+            indicators[agg_poi]={'raw': this_agg_indicator_raw, 'norm': this_agg_indicator_norm}
+            indicators={k: v for k, v in indicators.items() if k not in self.agg_pois[agg_poi]}
+
+                              
+
+        self.value_indicators=[]
+        for poi in indicators:
+            self.value_indicators.append({'name': 'Access to {}'.format(poi), 
+                                          'value': indicators[poi]['norm'], 
+                                          'raw_value': indicators[poi]['raw'],
+                                          'viz_type': self.viz_type, 
+                                          'units': 'Capacity'})
         if self.indicator_type in ['heatmap', 'access']:            
             grid_geojson=self.create_access_geojson(sample_nodes_acc)
             return grid_geojson
@@ -422,13 +429,13 @@ class ProxIndicator(Indicator):
     
 
 def main():
-    P= ProxIndicator(name='proximity',  indicator_type_in='heatmap', 
-                     table_name='corktown', viz_type_in='heatmap')
+    P= ProxIndicator(name='proximity',  indicator_type_in='numeric', 
+                     table_name='corktown', viz_type_in='bar')
     P.prepare_model()
 #    H = Handler('corktown', quietly=False)
 #    H.add_indicator(P)
 #    
-#    print(H.geogrid_data())
+#    geogrid_data=H.get_geogrid_data()
 #
 #    print(H.list_indicators())
 #    print(H.update_package())

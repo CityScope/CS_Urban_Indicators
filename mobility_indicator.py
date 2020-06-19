@@ -53,7 +53,7 @@ class MobilityIndicator(Indicator):
        
     def normalised_prediction(self, model, X_in, y_max, y_min):
         y_pred=model.predict(X_in)[0]
-        print(y_pred)
+#        print(y_pred)
         return {'raw':y_pred, 'norm': max(0, min(1,(y_pred-y_min)/(y_max-y_min)))}
         
     def load_module(self):
@@ -105,7 +105,7 @@ class MobilityIndicator(Indicator):
             else:
                 x=0               
             X_pa.append(x)
-        print(self.co2_model_features)
+#        print(self.co2_model_features)
         co2=self.normalised_prediction(self.co2_model, np.array(X_co2).reshape(1, -1), 
                                             self.max_co2, self.min_co2)
         pa=self.normalised_prediction(self.pa_model, np.array(X_pa).reshape(1, -1), 

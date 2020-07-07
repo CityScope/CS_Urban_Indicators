@@ -31,7 +31,7 @@ def approx_shape_centroid(geometry):
         print('Unknown geometry type')
 
 class ProxIndicator(Indicator):
-    def setup(self,*args,**kwargs):
+    def setup(self,host='https://cityio.media.mit.edu/', *args,**kwargs):
 #        self.viz_type = kwargs['viz_type_in']
         self.indicator_type = kwargs['indicator_type_in']
         self.table_name= kwargs['table_name']
@@ -49,7 +49,7 @@ class ProxIndicator(Indicator):
         assert(all(poi in self.scalers for poi in self.all_poi_types))
         self.radius=15 # minutes
         self.dummy_link_speed_met_min=2*1000/60
-        self.host='https://cityio.media.mit.edu/'
+        self.host=host
         # self.pois_per_lu={
         #           'Residential': {'housing': 200},
         #           'Office Tower': {'employment': 1200},

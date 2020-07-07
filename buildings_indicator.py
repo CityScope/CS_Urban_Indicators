@@ -140,15 +140,15 @@ def year_con_to_age(year_con, base_year):
     
     
 class BuildingsIndicator(Indicator):
-    def setup(self,*args,**kwargs):
+    def setup(self,host='https://cityio.media.mit.edu/', *args,**kwargs):
         self.category='numeric'
         self.table_name=kwargs['table_name']
         self.fitted_model_object_loc='./tables/buildings_data/fitted_comm_model.p'
         self.train_data_loc='./tables/buildings_data'
-        GEOGRID_props_loc='https://cityio.media.mit.edu/api/table/{}/GEOGRID/properties'.format(self.table_name)
-        with urllib.request.urlopen(GEOGRID_props_loc) as url:
-            geogrid_props=json.loads(url.read().decode())
-        self.cell_size=geogrid_props['header']['cellSize']
+        GEOGRID_loc='{}api/table/{}/GEOGRID'.format(host, self.table_name)
+        with urllib.request.urlopen(GEOGRID_loc) as url:
+            geogrid=json.loads(url.read().decode())
+        self.cell_size=geogrid['properties']['header']['cellSize']
         self.max_result_per_worker=100000
         self.min_result_per_worker=50000
                 

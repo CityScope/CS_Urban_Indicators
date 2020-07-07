@@ -7,15 +7,17 @@ from economic_indicator import EconomicIndicator
 from buildings_indicator import BuildingsIndicator
 from diversity_indicator import DiversityIndicator
 
+import sys
+
 from statistics import mean
 
-def main():
+def main(host='https://cityio.media.mit.edu/'):
     # Individual Indicators
     I = InnoIndicator()    
-    P = ProxIndicator(name='proximity',   indicator_type_in='numeric', table_name='corktown')
-    P_hm = ProxIndicator(name='proximity_heatmap',  indicator_type_in='heatmap', table_name='corktown')
+    P = ProxIndicator(name='proximity',   host=host, indicator_type_in='numeric', table_name='corktown')
+    P_hm = ProxIndicator(name='proximity_heatmap',  host=host, indicator_type_in='heatmap', table_name='corktown')
     M = MobilityIndicator(name='mobility', table_name='corktown')
-    B= BuildingsIndicator(name='buildings',  table_name='corktown')
+    B= BuildingsIndicator(name='buildings',  host=host,table_name='corktown')
     D= DiversityIndicator(name='diversity',  table_name='corktown')
     
     # 2nd order  individual indicators 
@@ -29,7 +31,7 @@ def main():
             D]:
         indicator.viz_type='bar'
     
-    H = Handler('corktown', quietly=False)
+    H = Handler('corktown', quietly=False, host=host)
     
     H.add_indicators([
             I,
@@ -84,4 +86,8 @@ def main():
     H.listen()
 
 if __name__ == '__main__':
-	main()
+    if len(sys.argv)>1:
+        host=sys.argv[1]
+        main(host=host)
+    else:
+        main()

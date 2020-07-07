@@ -41,9 +41,9 @@ class Handler:
 	quietly : boolean (default=True)
 		If True, it will show the status of every API call.
 	'''
-	def __init__(self, table_name, GEOGRIDDATA_varname = 'GEOGRIDDATA', GEOGRID_varname = 'GEOGRID', quietly=True):
+	def __init__(self, table_name, GEOGRIDDATA_varname = 'GEOGRIDDATA', GEOGRID_varname = 'GEOGRID', quietly=True, host = 'https://cityio.media.mit.edu/'):
 
-		self.host = 'https://cityio.media.mit.edu/'
+		self.host = host
 		self.table_name = table_name
 		self.quietly = quietly
 
@@ -416,9 +416,9 @@ class Handler:
 		These properties are not dynamic and include things such as the NAICS and LBCS composition of each lego type.
 		'''
 		if self.geogrid_props is None:
-			r = self._get_url(self.cityIO_get_url+'/GEOGRID/properties')
+			r = self._get_url(self.cityIO_get_url+'/GEOGRID')
 			if r.status_code==200:
-				self.geogrid_props = r.json()
+				self.geogrid_props = r.json()['properties']
 			else:
 				warn('Cant access cityIO type definitions')
 				sleep(1)

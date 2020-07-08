@@ -41,7 +41,7 @@ class Handler:
 	quietly : boolean (default=True)
 		If True, it will show the status of every API call.
 	'''
-	def __init__(self, table_name, GEOGRIDDATA_varname = 'GEOGRIDDATA', GEOGRID_varname = 'GEOGRID', quietly=True, host = 'https://cityio.media.mit.edu/'):
+	def __init__(self, table_name, GEOGRIDDATA_varname = 'GEOGRIDDATA', GEOGRID_varname = 'GEOGRID', quietly=True, host = 'https://cityio.media.mit.edu/', reference=None):
 
 		self.host = host
 		self.table_name = table_name
@@ -69,6 +69,8 @@ class Handler:
         
 		self.geogrid_props=None
 		self.get_geogrid_props()
+
+		self.reference =reference
         
 	def check_table(self):
 		'''
@@ -384,6 +386,11 @@ class Handler:
 			if (I.is_composite)&(I.indicator_type not in ['access','heatmap']):
 				indicator_values = {i['name']:i['value'] for i in new_values_numeric}
 				new_values_numeric += self._new_value(indicator_values,indicator_name)
+
+		# add ref values if they exist
+		for new_value in new_values_numeric:
+			if new_value['name'] in self.reference:
+				new_value['ref_value']=self.reference[new_value['name']]
 		
 		if append:
 			if len(new_values_numeric)!=0:

@@ -8,10 +8,12 @@ from buildings_indicator import BuildingsIndicator
 from diversity_indicator import DiversityIndicator
 
 import sys
+import json
 
 from statistics import mean
 
 def main(host='https://cityio.media.mit.edu/'):
+    reference=json.load(open('./tables/corktown/reference.json'))
     # Individual Indicators
     I = InnoIndicator()    
     P = ProxIndicator(name='proximity',   host=host, indicator_type_in='numeric', table_name='corktown')
@@ -31,7 +33,7 @@ def main(host='https://cityio.media.mit.edu/'):
             D]:
         indicator.viz_type='bar'
     
-    H = Handler('corktown', quietly=False, host=host)
+    H = Handler('corktown', quietly=False, host=host, reference=reference)
     
     H.add_indicators([
             I,

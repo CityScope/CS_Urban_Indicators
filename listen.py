@@ -62,8 +62,8 @@ def main(host='https://cityio.media.mit.edu/'):
                            name='Sustainable Buildings')
     
     comp_SW = CompositeIndicator(mean,
-                       selected_indicators=['Access to housing','Access to restaurants', 
-                                            'Access to education', 'Access to groceries',
+                       selected_indicators=['Access to housing', 
+                                            'Access to education', 'Access to 3rd Places',
                                             'Access to parks', 'Access to employment', 'Diversity Jobs',
                                             'Diversity Third Places', 'Diversity Education'],
                        name='Community Benefits')

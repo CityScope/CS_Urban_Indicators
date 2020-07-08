@@ -21,7 +21,7 @@ import pandas as pd
 
 
 
-folder='../Scenarios/17_Jun_20/'
+folder='../Scenarios/24_Jun_20/'
 
 
 I = InnoIndicator()    
@@ -161,3 +161,10 @@ output=pd.DataFrame(all_scenarios)
 output=output[col_order]
 
 output.to_csv('{}scenario_outputs.csv'.format(folder))
+
+import requests
+host='https://cityio.media.mit.edu/'
+table_name='corktown'
+cityIO_output_path=host+'api/table/update/'+table_name    
+r = requests.post(cityIO_output_path+'/GEOGRIDDATA', data = json.dumps(geogrid_data_inno_com))
+print(r)

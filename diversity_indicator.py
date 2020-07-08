@@ -98,8 +98,11 @@ class DiversityIndicator(EconomicIndicatorBase):
                 education_counts[naics]+=all_new_NAICS_agg[naics]*area_one_floor
             
         # new_R5 = 80% of new housing
-        # new_R6 = 20% of new housing        
-        new_housing=all_new_LBCS_agg['1100']*area_one_floor
+        # new_R6 = 20% of new housing 
+        if '1100' in all_new_LBCS_agg:
+            new_housing=all_new_LBCS_agg['1100']*area_one_floor
+        else:
+            new_housing=0
         housing_counts['R5']+=new_housing*0.8
         housing_counts['R6']+=new_housing*0.2
         

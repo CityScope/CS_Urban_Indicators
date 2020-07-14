@@ -113,11 +113,11 @@ class DiversityIndicator(EconomicIndicatorBase):
         
         return [{'name': 'Diversity Jobs', 'value': job_diversity,'raw_value': job_diversity, 
                  'viz_type': self.viz_type, 'units': None},
-                {'name': 'Diveristy Third Places', 'value': third_diversity, 'raw_value': third_diversity, 
+                {'name': 'Diversity Third Places', 'value': third_diversity, 'raw_value': third_diversity, 
                  'viz_type': self.viz_type, 'units': None},
-                 {'name': 'Diveristy Education', 'value': edu_diversity, 'raw_value': edu_diversity,  
+                 {'name': 'Diversity Education', 'value': edu_diversity, 'raw_value': edu_diversity,  
                  'viz_type': self.viz_type, 'units': None},
-                  {'name': 'Diveristy Housing', 'value': housing_diversity, 'raw_value': housing_diversity,  
+                  {'name': 'Diversity Housing', 'value': housing_diversity, 'raw_value': housing_diversity,  
                  'viz_type': self.viz_type, 'units': None}]
         
 

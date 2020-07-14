@@ -41,9 +41,12 @@ class Handler:
 	quietly : boolean (default=True)
 		If True, it will show the status of every API call.
 	'''
-	def __init__(self, table_name, GEOGRIDDATA_varname = 'GEOGRIDDATA', GEOGRID_varname = 'GEOGRID', quietly=True, host = 'https://cityio.media.mit.edu/', reference=None):
+	def __init__(self, table_name, GEOGRIDDATA_varname = 'GEOGRIDDATA', GEOGRID_varname = 'GEOGRID', quietly=True, host_mode ='remote' , reference=None):
 
-		self.host = host
+		if host_mode=='local':
+			self.host = 'http://127.0.0.1:5000/'
+		else:
+			self.host = 'https://cityio.media.mit.edu/'
 		self.table_name = table_name
 		self.quietly = quietly
 
@@ -529,7 +532,8 @@ class Handler:
 
 		if len(new_values['heatmap']['features'])!=0:
 			r = requests.post(self.cityIO_post_url+'/access', data = json.dumps(new_values['heatmap']))
-
+		if not self.quietly:
+			print('Done with update')
 		self.grid_hash_id = grid_hash_id
 
 	def rollback(self):
@@ -543,7 +547,7 @@ class Handler:
 		r = requests.post(self.cityIO_post_url+'/indicators', data = json.dumps(self.previous_indicators))
 		r = requests.post(self.cityIO_post_url+'/access', data = json.dumps(self.previous_access))
 
-	def listen(self,showFront=True,append=False):
+	def listen(self,showFront=False,append=False):
 		'''
 		Listen for changes in the table's geogrid and update all indicators accordingly. 
 		You can use the update_package method to see the object that will be posted to the table.

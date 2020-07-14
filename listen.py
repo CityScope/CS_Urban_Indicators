@@ -12,8 +12,12 @@ import json
 
 from statistics import mean
 
-def main(host='https://cityio.media.mit.edu/'):
+def main(host_mode='remote'):
     reference=json.load(open('./tables/corktown/reference.json'))
+    if host_mode=='local':
+        host = 'http://127.0.0.1:5000/'
+    else:
+        host = 'https://cityio.media.mit.edu/'
     # Individual Indicators
     I = InnoIndicator()    
     P = ProxIndicator(name='proximity',   host=host, indicator_type_in='numeric', table_name='corktown')
@@ -33,7 +37,7 @@ def main(host='https://cityio.media.mit.edu/'):
             D]:
         indicator.viz_type='bar'
     
-    H = Handler('corktown', quietly=False, host=host, reference=reference)
+    H = Handler('corktown', quietly=False, host_mode=host_mode, reference=reference)
     
     H.add_indicators([
             I,
@@ -89,7 +93,7 @@ def main(host='https://cityio.media.mit.edu/'):
 
 if __name__ == '__main__':
     if len(sys.argv)>1:
-        host=sys.argv[1]
-        main(host=host)
+        host_mode=sys.argv[1]
+        main(host_mode=host_mode)
     else:
         main()

@@ -50,7 +50,7 @@ class Handler:
 		self.table_name = table_name
 		self.quietly = quietly
 
-		self.sleep_time = 0.1
+		self.sleep_time = 0.5
 		self.nAttempts = 5
 
 		self.front_end_url   = 'https://cityscope.media.mit.edu/CS_cityscopeJS/?cityscope='+self.table_name

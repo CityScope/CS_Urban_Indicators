@@ -547,7 +547,7 @@ class Handler:
 		r = requests.post(self.cityIO_post_url+'/indicators', data = json.dumps(self.previous_indicators))
 		r = requests.post(self.cityIO_post_url+'/access', data = json.dumps(self.previous_access))
 
-	def listen(self,showFront=False,append=False):
+	def listen(self,showFront=True,append=False):
 		'''
 		Listen for changes in the table's geogrid and update all indicators accordingly. 
 		You can use the update_package method to see the object that will be posted to the table.

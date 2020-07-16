@@ -1,0 +1,35 @@
+{
+  "local_epsg": "2253",
+  "access_osm_pois": [],
+  "access_zonal_pois": [
+    "housing",
+    "employment",
+    "restaurants",
+    "groceries",
+    "parks",
+    "education"
+  ],
+  "scalers": {
+    "education": 50,
+    "parks": 80000,
+    "housing": 1000,
+    "employment": 7000,
+    "restaurants": 1000,
+    "groceries": 250
+  },
+  "bboxes": {
+    "amenities": [
+      -83.096,
+      42.314,
+      -83.04,
+      42.35
+    ]
+  },
+  "sampling_grid": {
+    "col_margin_left": 70,
+    "row_margin_top": 70,
+    "cell_width": 190,
+    "cell_height": 170,
+    "stride": 10
+  }
+}

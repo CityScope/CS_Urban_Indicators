@@ -2,7 +2,6 @@ from toolbox import Handler, Indicator, CompositeIndicator
 from proximity_indicator import ProxIndicator
 from innovation_indicator import InnoIndicator
 from mobility_indicator import MobilityIndicator
-from aggregate_indicator import AggregateIndicator
 from economic_indicator import EconomicIndicator
 from buildings_indicator import BuildingsIndicator
 from diversity_indicator import DiversityIndicator
@@ -12,23 +11,23 @@ import json
 
 from statistics import mean
 
-def main(host_mode='remote'):
-    reference=json.load(open('./tables/corktown/reference.json'))
+def main(host_mode='remote', table_name='corktown_dev'):
+    reference=json.load(open('./tables/{}/reference.json'.format(table_name)))
     if host_mode=='local':
         host = 'http://127.0.0.1:5000/'
     else:
         host = 'https://cityio.media.mit.edu/'
     # Individual Indicators
     I = InnoIndicator()    
-    P = ProxIndicator(name='proximity',   host=host, indicator_type_in='numeric', table_name='corktown')
-    P_hm = ProxIndicator(name='proximity_heatmap',  host=host, indicator_type_in='heatmap', table_name='corktown')
-    M = MobilityIndicator(name='mobility', table_name='corktown')
-    B= BuildingsIndicator(name='buildings',  host=host,table_name='corktown')
-    D= DiversityIndicator(name='diversity',  table_name='corktown')
+    P = ProxIndicator(name='proximity',   host=host, indicator_type_in='numeric', table_name=table_name)
+    P_hm = ProxIndicator(name='proximity_heatmap',  host=host, indicator_type_in='heatmap', table_name=table_name)
+    M = MobilityIndicator(name='mobility', table_name=table_name)
+    B= BuildingsIndicator(name='buildings',  host=host,table_name=table_name)
+    D= DiversityIndicator(name='diversity',  table_name=table_name)
     
     # 2nd order  individual indicators 
     E = EconomicIndicator(name='Economic',
-                          table_name='corktown')
+                          table_name=table_name)
     
     for indicator in [
             I,
@@ -37,7 +36,7 @@ def main(host_mode='remote'):
             D]:
         indicator.viz_type='bar'
     
-    H = Handler('corktown', quietly=False, host_mode=host_mode, reference=reference)
+    H = Handler(table_name, quietly=False, host_mode=host_mode, reference=reference)
     
     H.add_indicators([
             I,
@@ -93,7 +92,8 @@ def main(host_mode='remote'):
 
 if __name__ == '__main__':
     if len(sys.argv)>1:
-        host_mode=sys.argv[1]
-        main(host_mode=host_mode)
+        table_name=sys.argv[1]
     else:
-        main()
+        table_name='corktown_dev'
+    print('Running for table named {} on city_IO'.format(table_name))
+    main(table_name=table_name)

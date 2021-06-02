@@ -51,7 +51,7 @@ soupsieve==2.0
 statsmodels==0.11.1
 tfidf-matcher==0.2.1
 tqdm==4.45.0
-urllib3==1.25.8
+urllib3==1.26.5
 wget==3.2
 xlrd==1.2.0
 zipp==3.1.0

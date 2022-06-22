@@ -27,7 +27,7 @@ kiwisolver==1.2.0
 matplotlib==3.2.1
 munch==2.3.2
 networkx==2.4
-numpy==1.18.2
+numpy==1.22.0
 osmnx==0.12
 osmxtract==0.0.1
 pandas==1.0.3

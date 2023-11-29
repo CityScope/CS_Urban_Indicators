@@ -8,20 +8,20 @@ Dockerization allows us to deploy the modules in any server with docker. The dep
 
 The following commands build the image and then run a container using the image:
 ```
-> docker build -t python-urban-indicators .
-> docker run -d python-urban-indicators
+docker build -t python-urban-indicators .
+docker run -d python-urban-indicators
 ```
 
 When the image is built, it will copy the current status of the repo inside the image and it will try to download all the necessary shapefiles by running `download_shapeData.py`. This might take a while and you might want to do this inside a screen to avoid shutting it down by accident. 
 
 Once you execut the `docker run` command, the container is running even though nothing shows up (that is what the option `-d` does). To see its status, first get the name that was automatically asigned to the container by running:
 ```
-> docker container ls
+docker container ls
 ```
 
 Then, attach to the container:
 ```
-> docker container attach *container_name*
+docker container attach *container_name*
 ```
 
 ### Use a container for testing
@@ -30,13 +30,13 @@ Building the image takes a while, which is why we created a light-weight image t
 
 First, pull the image
 ```
-> docker pull crisjf/urban-indicators-dev
+docker pull crisjf/urban-indicators-dev
 ```
 
 Then, run a container using the image. It will automatically start a bash.
 The following command also makes sure that the current directory is mounted to the container (run from the directory of the repo):
 ```
-> docker run -it -v "$(pwd)":/home/CS_Urban_Indicators crisjf/urban-indicators-dev
+docker run -it -v "$(pwd)":/home/CS_Urban_Indicators crisjf/urban-indicators-dev
 ```
 
 
@@ -419,7 +419,7 @@ The column *TOT_EMP* has the employment in each occupation in each industry.
 
 Running the following script will create an untracked directory in tables/shapes with shapefiles for census block groups, census tracts, and counties for 2019:
 ```
->> python download_shapeData.py
+python download_shapeData.py
 ```
 
 ## Geofencing funcions
@@ -428,27 +428,27 @@ Most APIs provide data aggregated at a different geographic level (block groups,
 
 For example, to query the Zip Code Business Patterns API for information about Kendall Square area, we need to first know the zip codes within Kendall Square:
 ```
->> from geofence import getZips
->> bounds = gpd.read_file('tables/shapes/bounds/Kendall_bounds.shp').to_crs({'init':"EPSG:4326"})['geometry'].values[0]
->> zipcodeList = getZips(bounds=bounds)
+ from geofence import getZips
+ bounds = gpd.read_file('tables/shapes/bounds/Kendall_bounds.shp').to_crs({'init':"EPSG:4326"})['geometry'].values[0]
+ zipcodeList = getZips(bounds=bounds)
 ```
 
 Using the list of zip codes within Kendall, we can call the ZBP-API to get data for the number of companies and the number of employees within these zip codes. Note that ZBPCall is a wrapper that pings the ZBP-API with a default set of parameters:
 ```
->> from APICalls import ZBPCall
->> no_employees = ZBPCall(zipcodeList=zipcodeList)
+ from APICalls import ZBPCall
+ no_employees = ZBPCall(zipcodeList=zipcodeList)
 ```
 
 Different zip codes overlap differently with our geofenced bounds. We can use the getOSMWeights function from geofence.py to weight each zip code based on the fraction of the volume of buildings that fall within our bounds:
 ```
->> form geofence import getOSMWeights
->> zipShapes = getZips(bounds=bounds,asList=False)
->> weights = getOSMWeights(bounds,zipShapes,'ZCTA5CE10',quietly=False)
+ form geofence import getOSMWeights
+ zipShapes = getZips(bounds=bounds,asList=False)
+ weights = getOSMWeights(bounds,zipShapes,'ZCTA5CE10',quietly=False)
 ```
 
 Finally, we merge the weights with the query results and sum:
 ```
->> weighted = pd.merge(no_employees,weights.rename(columns={'ZCTA5CE10':'zip code'}))
->> weighted['weighted_EMP']   = weighted['EMP']*weighted['weight']
->> print(weighted[['weighted_EMP','weighted_ESTAB']].sum())
+ weighted = pd.merge(no_employees,weights.rename(columns={'ZCTA5CE10':'zip code'}))
+ weighted['weighted_EMP']   = weighted['EMP']*weighted['weight']
+ print(weighted[['weighted_EMP','weighted_ESTAB']].sum())
 ```
